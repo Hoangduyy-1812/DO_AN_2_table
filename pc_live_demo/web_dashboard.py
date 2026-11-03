@@ -787,6 +787,8 @@ class LiveWebRecorder(receiver.Recorder):
         global tcp_connected
         tcp_connected = True
         ack, res = super().record(obj)
+        if not res:
+            return ack, res
         r = validate_record(obj)
         if r["type"] == "frame":
             targets = decode_frame(r["raw_hex"])
