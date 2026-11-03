@@ -1,4 +1,4 @@
-trial,position,scenario,y_true_trial,candidate_fall_episodes,alarms_triggered,episodes_detected,false_alarms,trial_prediction,trial_correct,notes
+trial,position,scenario,y_true_trial,candidate_fall_episodes,alarms_triggered,episodes_detected,spurious_or_false_alarms,trial_prediction,trial_correct,notes
 A_cui_nhat_do_03,A,cui_nhat_do,0,0,0,0,0,0,True,OK
 A_di_lai_03,A,di_lai,0,0,0,0,0,0,True,OK
 A_dung_ngoi_03,A,dung_ngoi,0,0,0,0,0,0,True,OK

@@ -8,7 +8,7 @@ Reports both:
 import os, csv, json, statistics
 
 ROOT = r'C:\Users\ADMIN\Downloads\DO_AN_2'
-PHASE_CSV = os.path.join(ROOT, '04_DA_CHIA_NHAN_GIAI_DOAN', '01_tong_hop_927_doan_nhan_72_file.csv')
+PHASE_CSV = os.path.join(ROOT, '04_DA_CHIA_NHAN_GIAI_DOAN', '01_tong_hop_949_doan_nhan_71_file.csv')
 OUT_DIR = os.path.join(ROOT, '04_DA_CHIA_NHAN_GIAI_DOAN')
 
 H_MM = 1700.0
@@ -120,32 +120,48 @@ def main():
     summary_rows = []
     tot_episodes = 0
     det_episodes = 0
-    tot_false_alarms = 0
+    tot_spurious_alarms_in_fall = 0
+    tot_false_alarms_in_nonfall = 0
 
     for fo in test_folders:
         alarms = detect_events_fsm(streams[fo], v_thresh=0.78, hold_s=8.0)
         pos, scen, rep, y = meta_info[fo]
         episodes = post_fall_holds.get(fo, [])
-        matched = 0
+        
+        matched_episodes = 0
+        used_alarms = set()
         missed_notes = []
+        
         if y == 1:
             tot_episodes += len(episodes)
-            for (hs, he, ver) in episodes:
-                hit = any(hs - 2.0 <= al['impact_s'] <= he for al in alarms)
-                if hit:
-                    matched += 1
+            # Match each post-fall hold episode to AT MOST ONE earliest alarm (1-to-1 bipartite matching)
+            for ep_idx, (hs, he, ver) in enumerate(episodes):
+                matched_alarm_idx = None
+                for al_idx, al in enumerate(alarms):
+                    if al_idx in used_alarms:
+                        continue
+                    if hs - 2.0 <= al['impact_s'] <= he:
+                        matched_alarm_idx = al_idx
+                        break
+                if matched_alarm_idx is not None:
+                    matched_episodes += 1
+                    used_alarms.add(matched_alarm_idx)
                 else:
                     missed_notes.append(f"missed@{hs:.1f}s({ver})")
-            det_episodes += matched
+            det_episodes += matched_episodes
+            spurious_alarms = len(alarms) - len(used_alarms)
+            tot_spurious_alarms_in_fall += spurious_alarms
+            false_alarms = spurious_alarms
         else:
-            tot_false_alarms += len(alarms)
+            false_alarms = len(alarms)
+            tot_false_alarms_in_nonfall += false_alarms
 
         summary_rows.append({
             'trial': fo, 'position': pos, 'scenario': scen, 'y_true_trial': y,
             'candidate_fall_episodes': len(episodes) if y == 1 else 0,
             'alarms_triggered': len(alarms),
-            'episodes_detected': matched if y == 1 else 0,
-            'false_alarms': len(alarms) if y == 0 else 0,
+            'episodes_detected': matched_episodes if y == 1 else 0,
+            'spurious_or_false_alarms': false_alarms,
             'trial_prediction': 1 if len(alarms) > 0 else 0,
             'trial_correct': (1 if len(alarms) > 0 else 0) == y,
             'notes': '; '.join(missed_notes) if missed_notes else ('OK' if not alarms or y == 1 else str(alarms))
@@ -159,9 +175,11 @@ def main():
 
     print(f"Saved event evaluation to {out_csv}")
     print(f"Test Repeat 03: Trial-level correct = {sum(1 for r in summary_rows if r['trial_correct'])}/{len(summary_rows)}")
-    print(f"Test Repeat 03: Individual fall episodes detected = {det_episodes}/{tot_episodes} ({det_episodes/tot_episodes*100:.1f}%) | False alarms in 21 non-fall trials = {tot_false_alarms}")
+    print(f"Test Repeat 03: Individual fall episodes detected = {det_episodes}/{tot_episodes} ({det_episodes/tot_episodes*100:.1f}%)")
+    print(f"Test Repeat 03: False alarms in 21 non-fall trials = {tot_false_alarms_in_nonfall}")
+    print(f"Test Repeat 03: Spurious/redundant alarms in 3 fall trials = {tot_spurious_alarms_in_fall}")
     for r in summary_rows:
-        if r['y_true_trial'] == 1 or r['false_alarms'] > 0:
+        if r['y_true_trial'] == 1 or r['spurious_or_false_alarms'] > 0:
             print(" ", r)
 
 if __name__ == '__main__':
