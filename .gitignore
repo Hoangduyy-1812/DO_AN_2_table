@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.vscode/
+.idea/
+data_live_demo/
+data_web_session/
