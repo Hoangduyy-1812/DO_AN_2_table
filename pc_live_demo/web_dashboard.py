@@ -8,6 +8,17 @@ from __future__ import annotations
 import argparse, csv, datetime as dt, http.server, json, os, queue, socket, socketserver, sys, threading, time, webbrowser
 from pathlib import Path
 
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 from protocol import COUNTERS, decode_frame, validate_record
 from live_fall_fsm import OnlineFallDetectorFSM
 import receiver
@@ -803,7 +814,7 @@ def main():
     parser.add_argument("--tcp-port", type=int, default=9000, help="ESP32 TCP port")
     parser.add_argument("--web-port", type=int, default=8080, help="Web Dashboard port")
     parser.add_argument("--out", type=Path, default=Path("data_web_session"))
-    parser.add_argument("--open-browser", action="store_true", default=True)
+    parser.add_argument("--no-browser", action="store_true", help="Do not automatically open web browser")
     args = parser.parse_args()
 
     # 1. Start HTTP Server in background thread
@@ -812,17 +823,17 @@ def main():
     web_url = f"http://localhost:{args.web_port}"
 
     print("\n" + "="*80)
-    print("🚀 GIAO DIỆN WEB DASHBOARD ĐÃ KHỞI CHẠY THÀNH CÔNG!")
-    print(f"   👉 Truy cập Dashboard tại trình duyệt: {web_url}")
-    print(f"   📡 Đang lắng nghe kết nối TCP từ ESP32 tại cổng: {args.tcp_port}")
-    print("   💡 Tính năng nổi bật:")
-    print("      - Cảnh báo âm thanh thời gian thực (Web Audio API)")
-    print("      - Bản đồ quét phòng 2D (Top-down Room View)")
-    print("      - Đồ thị cao độ Z(t) & vận tốc V(t) 60 FPS")
-    print("      - Nút bấm '🧪 Giả lập Ngã Demo' trực tiếp trên giao diện Web")
+    print("[WEB GUI] GIAO DIEN WEB DASHBOARD DA KHOI CHAY THANH CONG!")
+    print(f"   * Truy cap Dashboard tai trinh duyet: {web_url}")
+    print(f"   * Dang lang nghe ket noi TCP tu ESP32 tai cong: {args.tcp_port}")
+    print("   * Tinh nang noi bat:")
+    print("      - Canh bao am thanh thoi gian thuc (Web Audio API)")
+    print("      - Ban do quet phong 2D (Top-down Room View)")
+    print("      - Do thi cao do Z(t) & van toc V(t) 60 FPS")
+    print("      - Nut bam 'Gia lap Nga Demo' truc tiep tren giao dien Web")
     print("="*80 + "\n")
 
-    if args.open_browser:
+    if not args.no_browser:
         try:
             webbrowser.open(web_url)
         except Exception:
