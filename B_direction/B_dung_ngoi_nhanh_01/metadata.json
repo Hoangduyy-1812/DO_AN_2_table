@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-02T14:46:46.974352+00:00",
+  "participant": "P01",
+  "trial_id": "T001",
+  "trial_activity": "pilot\\",
+  "notes": "",
+  "fsync_each_record": false,
+  "timestamp_note": "t_us = ESP32 frame reception uptime, not sensor measurement time",
+  "label_note": "trial_activity is a trial descriptor, not per-window ground truth",
+  "target_note": "t1/t2/t3 are report slots, not guaranteed persistent person identities",
+  "format": "LD2450 protocol V1.03, UART 256000 8N1, raw report 30 bytes"
+}
