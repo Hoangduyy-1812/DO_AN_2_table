@@ -44,13 +44,13 @@ class OnlineFallDetectorFSM:
         # Rule 1: Exclude frames with backlog > 500ms
         if backlog_ms > 500.0:
             self.reset_stream(reason="backlog_exceeded")
-            return self.get_summary(t_us, None, 0, 0, 0, "BACKLOG_EXCEEDED"), None
+            return self.get_summary(t_us, None, 0, 0, 0, 0, note="BACKLOG_EXCEEDED"), None
 
         # Rule 2: Single target only
         if len(active_targets) != 1:
             reason = "NO_TARGET" if len(active_targets) == 0 else f"MULTI_TARGET_{len(active_targets)}"
             self.reset_stream(reason=reason)
-            return self.get_summary(t_us, None, 0, 0, 0, reason), None
+            return self.get_summary(t_us, None, 0, 0, 0, 0, note=reason), None
 
         tgt = active_targets[0]
         slot = tgt['slot']
@@ -155,3 +155,4 @@ class OnlineFallDetectorFSM:
             'hold_time_s': round(hold_time, 1),
             'note': note
         }
+

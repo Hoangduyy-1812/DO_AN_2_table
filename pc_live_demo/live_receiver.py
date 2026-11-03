@@ -22,6 +22,8 @@ class LiveDetectorRecorder(receiver.Recorder):
 
     def record(self, obj: object) -> tuple[str, bool]:
         ack, res = super().record(obj)
+        if not res:
+            return ack, res
         r = validate_record(obj)
         if r["type"] == "frame":
             self.frame_count += 1
@@ -108,3 +110,4 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
