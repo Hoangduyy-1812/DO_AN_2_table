@@ -39,27 +39,28 @@
 ---
 
 ## III. BẢNG PHÂN ĐOẠN NHÃN GIAI ĐOẠN (PHASE SEGMENTATION)
-*(Tóm tắt từ file: `04_DA_CHIA_NHAN_GIAI_DOAN/01_tong_hop_949_doan_nhan_71_file.csv`)*
-- Dữ liệu của 71 file hợp lệ được bóc tách tự động thành **949 đoạn hành động** không chồng lấn thời gian (`overlaps = 0`), thuộc 12 nhóm nhãn:
+*(Tóm tắt tính trực tiếp từ file: `04_DA_CHIA_NHAN_GIAI_DOAN/01_tong_hop_949_doan_nhan_71_file.csv`)*
+- Dữ liệu của 71 file hợp lệ được bóc tách tự động thành **949 đoạn hành động** không chồng lấn thời gian (`overlaps = 0`), thuộc 13 nhóm nhãn:
 
 | Nhóm hành động (`activity_label`) | Số đoạn | Thời lượng trung vị ($s$) | Cao độ $\hat{Z}$ trung vị ($m$) | Đỉnh tốc độ trung vị ($m/s$) | Đặc trưng động học nhận diện |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Đứng (`STAND`)** | 295 | 4,63 | +1,24 | 0,48 | Duy trì cao độ ổn định vùng ngực/bụng |
-| **Đang đứng dậy (`STAND_UP`)** | 185 | 1,07 | +0,86 | 0,24 | Quá trình nâng trọng tâm từ thấp lên cao |
-| **Đang ngồi ghế (`SIT_DOWN`)** | 108 | 1,07 | +0,89 | 0,24 | Quá trình hạ trọng tâm xuống mặt ghế (~0.92m) |
-| **Ngồi ghế (`SIT`)** | 96 | 6,05 | +0,68 | 0,56 | Giữ ổn định ở cao độ mặt ghế |
-| **Cúi nhặt đồ (`BEND`)** | 50 | 2,85 | +0,64 | 0,35 | Hình chữ "V": hạ thấp rồi đứng thẳng dậy ngay |
-| **Té ngã (`FALL`)** | **27** | **0,57** | **+0,59** | **1,28** *(max 2,24)* | **Rơi tự do đột ngột, sập sàn rất nhanh** |
-| **Nằm sau khi ngã (`LYING_POST_FALL`)** | 30 | 15,97 | -0,04 | 0,79 | Nằm bất động sát mặt sàn sau cú ngã |
-| **Hạ người nằm chủ động (`LIE_DOWN`)** | **20** | **0,80** | **+0,63** | **0,48** | **Hạ người có kiểm soát (chống tay/ngồi trước)** |
-| **Nằm trên nệm (`LYING`)** | 23 | 15,13 | +0,10 | 0,72 | Nằm yên trên nệm trong kịch bản nằm |
-| **Ngồi xổm (`SQUAT`, `SQUAT_DOWN`)** | 60 | 8,81 | +0,33 | 0,39 | Hạ sâu sát sàn nhưng không sập tự do |
+| **Đứng (`STAND`)** | 295 | 4,45 | +1,22 | 0,39 | Duy trì cao độ ổn định vùng ngực/bụng |
+| **Đang đứng dậy (`STAND_UP`)** | 185 | 0,80 | +0,89 | 0,24 | Quá trình nâng trọng tâm từ thấp lên cao |
+| **Đang ngồi ghế (`SIT_DOWN`)** | 108 | 0,80 | +0,92 | 0,16 | Quá trình hạ trọng tâm xuống mặt ghế |
+| **Ngồi ghế (`SIT`)** | 96 | 4,63 | +0,67 | 0,56 | Giữ ổn định ở cao độ mặt ghế |
+| **Cúi nhặt đồ (`BEND`)** | 50 | 2,40 | +0,62 | 0,35 | Hình chữ "V": hạ thấp rồi đứng thẳng dậy ngay |
+| **Té ngã (`FALL`)** | **27** | **0,53** | **+0,58** | **1,52** *(max 2,24)* | **Rơi tự do đột ngột, sập sàn rất nhanh** |
+| **Nằm sau khi ngã (`LYING_POST_FALL`)** | 30 | 17,00 | -0,12 | 0,88 | Nằm bất động sát mặt sàn sau cú ngã |
+| **Hạ người nằm chủ động (`LIE_DOWN`)** | **20** | **0,98** | **+0,62** | **0,48** | **Hạ người có kiểm soát (chống tay/ngồi trước)** |
+| **Nằm trên nệm (`LYING`)** | 23 | 16,02 | +0,08 | 0,79 | Nằm yên trên nệm trong kịch bản nằm |
+| **Đang ngồi xổm (`SQUAT_DOWN`)** | 29 | 0,62 | +0,71 | 0,24 | Hạ người xuống tư thế ngồi xổm |
+| **Ngồi xổm (`SQUAT`)** | 31 | 8,90 | +0,31 | 0,39 | Hạ sâu sát sàn nhưng không sập tự do |
 | **Đi lại (`WALK`)** | 14 | 22,69 | +1,28 | 0,60 | Trọng tâm cao, Doppler dao động liên tục |
-| **Đoạn tụt thấp nghi vấn (`UNVERIFIED_LOW_DIP`)** | 41 | 1,07 | +0,25 | 0,00 | Tụt thấp ngắn (<5s) hoặc đứt dấu radar |
+| **Đoạn tụt thấp nghi vấn (`UNVERIFIED_LOW_DIP`)** | 41 | 1,42 | +0,34 | 0,39 | Tụt thấp ngắn (<5s) hoặc đứt dấu radar |
 
 > 📌 **Điểm nhấn so sánh then chốt giữa Ngã thật và Nằm chủ động:**
-> - Cú ngã (`FALL`) diễn ra chỉ trong **`0,57 s`** với tốc độ đỉnh đạt **`1,28 m/s`** (gấp 2,6 lần nằm chủ động).
-> - Nằm chủ động (`LIE_DOWN`) diễn ra từ tốn trong **`0,80 s`** với tốc độ êm ái **`0,48 m/s`**.
+> - Cú ngã (`FALL`) diễn ra chỉ trong **`0,53 s`** với tốc độ đỉnh đạt **`1,52 m/s`** (gấp 3,17 lần nằm chủ động).
+> - Nằm chủ động (`LIE_DOWN`) diễn ra từ tốn trong **`0,98 s`** với tốc độ êm ái **`0,48 m/s`**.
 
 ---
 
@@ -80,15 +81,15 @@
   - F1-score lớp Ngã: **85,71%**
   - **Phân tích lỗi duy nhất:** File `C_nam_chu_dong_03` bị nhầm thành Ngã do đặc trưng toàn phiên của file này có phân vị tốc độ `abs_speed_q95 = 0,48 m/s` và thời gian nằm thấp `longest_z_le_50cm_s = 23,49 s` trùng với phân bố của các file ngã trong tập train.
 
-### 2. Cấp độ Sự kiện thời gian thực (Event-level FSM)
-*(Bộ dò sự kiện hạ người kết hợp FSM 4 trạng thái, áp dụng luật ghép cặp 1-1)*
+### 2. Cấp độ Sự kiện thời gian thực (Đánh giá FSM Offline)
+*(Bộ dò sự kiện hạ người kết hợp FSM 4 trạng thái, áp dụng luật ghép cặp 1-1 trên tập kiểm thử Lượt 03)*
 
 | Tiêu chí đánh giá sự kiện | Kết quả trên tập Test (Lượt 03) | Ý nghĩa kỹ thuật |
 | :--- | :---: | :--- |
 | **Tỷ lệ nhận diện từng cú ngã** | **8 / 10 cú ngã (80,0%)** | Bắt đúng 8 cú ngã chuẩn; 2 cú bị lọt do tốc độ thấp hoặc mất dấu radar |
-| **Báo động giả (False Alarms)** | **0 cảnh báo** (trên 21 file thường) | Triệt tiêu 100% báo động giả trên các hoạt động dễ nhầm (Cúi, Nằm, Ngồi) |
+| **Báo động giả (False Alarms)** | **0 cảnh báo** (trên 21 file không ngã) | Không ghi nhận báo động giả trên 21 file không ngã được đánh giá (Cúi, Nằm, Ngồi) |
 | **Cảnh báo dư (Spurious Alarms)** | **0 cảnh báo** (trên 3 file ngã) | Mỗi cú ngã chỉ kích hoạt duy nhất 1 lần chuông báo |
-| **Phân loại cấp độ file từ sự kiện** | **24 / 24 file đúng (100%)** | Cả 3 file ngã đều có cảnh báo, 21 file thường không hề có cảnh báo |
+| **Phân loại cấp độ file từ sự kiện** | **24 / 24 file đúng (100%)** | Cả 3 file ngã đều có cảnh báo, 21 file không ngã không hề có cảnh báo |
 | **Độ trễ cảnh báo (Alarm Latency)** | **~8,01 giây** | Thời gian xác nhận bất động sau va chạm trước khi phát chuông |
 
 ---

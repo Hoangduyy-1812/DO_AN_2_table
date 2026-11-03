@@ -82,12 +82,10 @@ def detect_events_fsm(pts, v_thresh=0.78, hold_s=8.0):
                 if v_peak >= v_thresh and dz >= 0.50:
                     # Enter IMMOBILITY / FLOOR CHECK state: stay zs < 0.48m for >= hold_s, SAME SLOT & NO GAP
                     k = i
-                    floor_broken = False
                     while k < n and pts[k]['zs'] < 0.48:
                         if k > i:
                             # Check slot change or gap
                             if pts[k]['slot'] != pts[k-1]['slot'] or (pts[k]['t_s'] - pts[k-1]['t_s']) > 0.50:
-                                floor_broken = True
                                 break
                         if pts[k]['t_s'] - pts[i]['t_s'] >= hold_s:
                             alarms.append({
@@ -101,14 +99,9 @@ def detect_events_fsm(pts, v_thresh=0.78, hold_s=8.0):
                             })
                             while k < n and pts[k]['zs'] < 0.55 and pts[k]['slot'] == target_slot:
                                 k += 1
-                            i = k
                             break
                         k += 1
-                    else:
-                        if floor_broken:
-                            i = k
-                        else:
-                            i = k
+                    i = k
                     continue
         i += 1
     return alarms
