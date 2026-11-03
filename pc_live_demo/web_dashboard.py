@@ -190,6 +190,21 @@ HTML_PAGE = """<!DOCTYPE html>
     td { padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
     tr:hover { background: rgba(255, 255, 255, 0.02); }
 
+    /* Responsive Mobile Layout */
+    @media (max-width: 900px) {
+      header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 12px 16px; }
+      .header-badges { width: 100%; flex-wrap: wrap; gap: 8px; }
+      main { padding: 14px 16px; }
+      #status-banner { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .visual-grid { grid-template-columns: 1fr; gap: 16px; }
+      canvas { height: 260px; }
+    }
+    @media (max-width: 480px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 1.0rem; }
+    }
+
     /* Footer */
     footer { padding: 14px 28px; text-align: center; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--card-border); }
   </style>
