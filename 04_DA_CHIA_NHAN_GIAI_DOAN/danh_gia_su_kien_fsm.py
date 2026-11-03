@@ -54,24 +54,41 @@ def detect_events_fsm(pts, v_thresh=0.78, hold_s=8.0):
     i = 0
     while i < n:
         if pts[i]['zs'] < 0.40:
+            # Look back up to 1.25s for upright posture zs >= 0.90m, ENSURING strictly same slot and no time gap > 0.35s
             onset_idx = None
+            target_slot = pts[i]['slot']
             for j in range(i - 1, -1, -1):
+                # Disallow bridging across slot change or time gap > 0.35s
+                if pts[j+1]['slot'] != pts[j]['slot'] or (pts[j+1]['t_s'] - pts[j]['t_s']) > 0.35:
+                    break
                 if pts[i]['t_s'] - pts[j]['t_s'] > 1.25:
                     break
                 if pts[j]['zs'] >= 0.90:
                     onset_idx = j
                     break
             if onset_idx is not None:
-                w_start = max(0, onset_idx - 2)
-                w_end = min(n, i + 5)
-                v_peak = max(pts[k]['v'] for k in range(w_start, w_end))
+                # Peak velocity during the 2s descent window [onset_idx - 2 .. i + 4], same slot only
+                w_start = onset_idx
+                while w_start > 0 and (pts[onset_idx]['t_s'] - pts[w_start-1]['t_s']) <= 0.25 and pts[w_start-1]['slot'] == target_slot:
+                    w_start -= 1
+                w_end = i
+                while w_end < n - 1 and (pts[w_end+1]['t_s'] - pts[i]['t_s']) <= 0.40 and pts[w_end+1]['slot'] == target_slot:
+                    w_end += 1
+                v_peak = max(pts[k]['v'] for k in range(w_start, w_end + 1))
                 dz = pts[onset_idx]['zs'] - pts[i]['zs']
                 dt = max(0.09, pts[i]['t_s'] - pts[onset_idx]['t_s'])
                 drop_rate = dz / dt
 
                 if v_peak >= v_thresh and dz >= 0.50:
+                    # Enter IMMOBILITY / FLOOR CHECK state: stay zs < 0.48m for >= hold_s, SAME SLOT & NO GAP
                     k = i
-                    while k < n and pts[k]['zs'] < 0.48 and (pts[k]['t_s'] - pts[k-1]['t_s'] if k > i else 0) <= 0.5:
+                    floor_broken = False
+                    while k < n and pts[k]['zs'] < 0.48:
+                        if k > i:
+                            # Check slot change or gap
+                            if pts[k]['slot'] != pts[k-1]['slot'] or (pts[k]['t_s'] - pts[k-1]['t_s']) > 0.50:
+                                floor_broken = True
+                                break
                         if pts[k]['t_s'] - pts[i]['t_s'] >= hold_s:
                             alarms.append({
                                 'onset_s': round(pts[onset_idx]['t_s'], 2),
@@ -79,15 +96,19 @@ def detect_events_fsm(pts, v_thresh=0.78, hold_s=8.0):
                                 'alarm_s': round(pts[k]['t_s'], 2),
                                 'latency_s': round(pts[k]['t_s'] - pts[i]['t_s'], 2),
                                 'v_peak_mps': round(v_peak, 2),
-                                'drop_rate_mps': round(drop_rate, 2)
+                                'drop_rate_mps': round(drop_rate, 2),
+                                'slot': target_slot
                             })
-                            while k < n and pts[k]['zs'] < 0.55:
+                            while k < n and pts[k]['zs'] < 0.55 and pts[k]['slot'] == target_slot:
                                 k += 1
                             i = k
                             break
                         k += 1
                     else:
-                        i = k
+                        if floor_broken:
+                            i = k
+                        else:
+                            i = k
                     continue
         i += 1
     return alarms
