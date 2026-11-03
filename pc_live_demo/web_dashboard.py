@@ -21,6 +21,7 @@ if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
 
 from protocol import COUNTERS, decode_frame, validate_record
 from live_fall_fsm import OnlineFallDetectorFSM
+from mqtt_publisher import MqttPublisher
 import receiver
 
 # Global broadcast queue for connected SSE clients
@@ -796,6 +797,33 @@ def process_frame(t_us: int, active_list: list[dict], backlog_ms: float = 0.0, s
         last_frame_info = summary
 
     broadcast(summary)
+    publish_mqtt(summary, alarm)
+
+
+# ---------------- MQTT Cloud (xem tren dien thoai tu bat ky dau) ----------------
+mqtt_pub: MqttPublisher | None = None
+_mqtt_last = {'t': 0.0, 'state': None}
+
+
+def publish_mqtt(summary: dict, alarm: dict | None):
+    """Throttled publish: <= 4 msg/s for live state, immediate on state change or alarm."""
+    if mqtt_pub is None:
+        return
+    now = time.time()
+    changed = summary['state'] != _mqtt_last['state']
+    if changed or alarm or now - _mqtt_last['t'] >= 0.25:
+        _mqtt_last['t'], _mqtt_last['state'] = now, summary['state']
+        mqtt_pub.publish('state', {
+            't': summary['t_s'], 's': summary['state'], 'z': summary['z_est_m'],
+            'v': summary['v_mps'], 'x': summary['x_mm'], 'y': summary['y_mm'],
+            'slot': summary['slot'], 'h': summary['hold_time_s'],
+            'c': summary['tcp_connected'], 'n': summary['note'],
+            'na': len(summary['alarms']),
+        })
+    if alarm:
+        payload = dict(alarm, wall_time=dt.datetime.now().strftime('%H:%M:%S %d/%m/%Y'))
+        mqtt_pub.publish('alarm', payload)
+        mqtt_pub.publish('last_alarm', payload, retain=True)
 
 class LiveWebRecorder(receiver.Recorder):
     def record(self, obj: object) -> tuple[str, bool]:
@@ -832,7 +860,17 @@ def main():
     parser.add_argument("--web-port", type=int, default=8080, help="Web Dashboard port")
     parser.add_argument("--out", type=Path, default=Path("data_web_session"))
     parser.add_argument("--no-browser", action="store_true", help="Do not automatically open web browser")
+    parser.add_argument("--no-mqtt", action="store_true", help="Tat gui du lieu len MQTT Cloud")
+    parser.add_argument("--mqtt-host", default="broker.hivemq.com")
+    parser.add_argument("--mqtt-port", type=int, default=1883)
+    parser.add_argument("--mqtt-topic", default="doan2/hoangduy1812/ld2450",
+                        help="Topic goc; trang dien thoai phai dung cung topic nay")
     args = parser.parse_args()
+
+    global mqtt_pub
+    if not args.no_mqtt:
+        mqtt_pub = MqttPublisher(args.mqtt_host, args.mqtt_port, args.mqtt_topic).start()
+        print(f"[MQTT] Gui trang thai len {args.mqtt_host} | topic: {args.mqtt_topic}/state, /alarm")
 
     # 1. Start HTTP Server in background thread
     http_thread = threading.Thread(target=start_http_server, args=("0.0.0.0", args.web_port), daemon=True)

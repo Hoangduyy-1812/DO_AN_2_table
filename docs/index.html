@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090d16">
+<title>Radar Fall Monitor – Điện thoại</title>
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<style>
+  :root { --bg:#090d16; --card:rgba(18,25,42,.9); --bd:rgba(255,255,255,.08); --pri:#00f0ff;
+          --ok:#10b981; --warn:#f59e0b; --bad:#ef4444; --tx:#f3f4f6; --mu:#94a3b8; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; color:var(--tx);
+         background:radial-gradient(circle at 50% 0%,#151d33 0%,var(--bg) 70%); min-height:100vh;
+         padding:max(14px,env(safe-area-inset-top)) 14px 24px; }
+  .mono { font-family:ui-monospace,Menlo,Consolas,monospace; }
+  header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  h1 { font-size:1rem; font-weight:800; }
+  .sub { font-size:.72rem; color:var(--mu); }
+  .pill { font-size:.7rem; font-weight:700; padding:5px 10px; border-radius:99px; display:inline-flex; gap:6px; align-items:center; }
+  .pill.off { background:rgba(239,68,68,.15); color:#fca5a5; }
+  .pill.on  { background:rgba(16,185,129,.15); color:#6ee7b7; }
+  .dot { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  #banner { border-radius:16px; padding:20px 18px; border:1px solid; margin-bottom:14px; transition:.3s; }
+  .b-mon { background:rgba(16,185,129,.1); border-color:rgba(16,185,129,.45); color:#34d399; }
+  .b-sus { background:rgba(245,158,11,.15); border-color:var(--warn); color:#fbbf24; }
+  .b-alm { background:rgba(239,68,68,.3); border-color:var(--bad); color:#fecaca; animation:flash .6s infinite alternate; }
+  .b-off { background:rgba(148,163,184,.08); border-color:rgba(148,163,184,.3); color:var(--mu); }
+  @keyframes flash { from { background:rgba(239,68,68,.45);} to { background:rgba(239,68,68,.12);} }
+  #bTitle { font-size:1.25rem; font-weight:900; }
+  #bDesc { font-size:.82rem; opacity:.9; margin-top:6px; }
+  .bar { height:10px; border-radius:5px; background:rgba(255,255,255,.12); overflow:hidden; margin-top:10px; display:none; }
+  .bar > div { height:100%; width:0; background:var(--warn); transition:width .2s linear; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .card { background:var(--card); border:1px solid var(--bd); border-radius:14px; padding:14px; }
+  .lbl { font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; color:var(--mu); font-weight:700; }
+  .val { font-size:1.7rem; font-weight:900; margin-top:4px; }
+  .val small { font-size:.85rem; font-weight:500; }
+  canvas { width:100%; height:170px; display:block; border-radius:10px; background:rgba(8,12,22,.7); margin-top:8px; }
+  .btns { display:flex; gap:8px; margin-bottom:14px; }
+  button { flex:1; padding:12px; border-radius:12px; border:1px solid var(--bd); background:rgba(255,255,255,.06);
+           color:var(--tx); font-weight:700; font-size:.85rem; }
+  button.pri { background:linear-gradient(135deg,#0284c7,#00f0ff); color:#000; border:none; }
+  table { width:100%; border-collapse:collapse; font-size:.75rem; margin-top:8px; }
+  th, td { text-align:left; padding:7px 4px; border-bottom:1px solid rgba(255,255,255,.06); }
+  th { color:var(--mu); font-size:.65rem; text-transform:uppercase; }
+  .cfg { font-size:.7rem; color:var(--mu); margin-top:16px; word-break:break-all; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>📡 Radar Fall Monitor</h1>
+    <div class="sub">HLK-LD2450 24GHz · ESP32 · FSM · MQTT Cloud</div>
+  </div>
+  <div id="conn" class="pill off"><span class="dot"></span><span id="connTx">Đang kết nối...</span></div>
+</header>
+
+<div id="banner" class="b-off">
+  <div id="bTitle">⏳ Đang chờ dữ liệu từ PC</div>
+  <div id="bDesc">Hãy chạy web_dashboard.py trên máy tính.</div>
+  <div class="bar" id="bar"><div id="barFill"></div></div>
+</div>
+
+<div class="btns">
+  <button class="pri" id="soundBtn" onclick="enableAlerts()">🔔 Bật chuông & rung</button>
+</div>
+
+<div class="grid">
+  <div class="card"><div class="lbl">Chiều cao Ẑ</div><div class="val mono" id="vz">--<small> m</small></div></div>
+  <div class="card"><div class="lbl">Vận tốc Doppler</div><div class="val mono" id="vv">--<small> m/s</small></div></div>
+  <div class="card"><div class="lbl">Tư thế</div><div class="val" id="vp" style="font-size:1.05rem">--</div></div>
+  <div class="card"><div class="lbl">ESP32 → PC</div><div class="val" id="ve" style="font-size:1.05rem">--</div></div>
+</div>
+
+<div class="card" style="margin-bottom:14px">
+  <div class="lbl">Quỹ đạo cao độ Ẑ(t) – 30 giây gần nhất <span style="color:#ef4444">(-- ngưỡng sàn 0,40 m)</span></div>
+  <canvas id="chart" width="600" height="300"></canvas>
+</div>
+
+<div class="card">
+  <div class="lbl">🚨 Nhật ký cảnh báo té ngã</div>
+  <table><thead><tr><th>Giờ</th><th>Độ trễ</th><th>V_peak</th><th>Ẑ sàn</th></tr></thead>
+  <tbody id="log"><tr><td colspan="4" style="color:var(--mu)">Chưa có cảnh báo.</td></tr></tbody></table>
+</div>
+
+<div class="cfg mono" id="cfg"></div>
+
+<script>
+  // Topic can be overridden with ?topic=... in the URL (must match web_dashboard.py --mqtt-topic)
+  const qs = new URLSearchParams(location.search);
+  const BASE = qs.get('topic') || 'doan2/hoangduy1812/ld2450';
+  const URL_WS = qs.get('broker') || 'wss://broker.hivemq.com:8884/mqtt';
+  document.getElementById('cfg').textContent = `Broker: ${URL_WS} · Topic: ${BASE}/#`;
+
+  const $ = id => document.getElementById(id);
+  let lastMsg = 0, pcOnline = null, alertsOn = false, audioCtx = null, lastState = null;
+  const hist = [];
+
+  function enableAlerts() {
+    alertsOn = true;
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    audioCtx.resume();
+    beep(660, .15);
+    if (navigator.vibrate) navigator.vibrate(100);
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+    $('soundBtn').textContent = '✅ Chuông & rung đã bật';
+  }
+  function beep(f = 880, d = .25) {
+    if (!alertsOn || !audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'sawtooth'; o.frequency.value = f;
+    g.gain.setValueAtTime(.35, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.01, audioCtx.currentTime + d);
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + d);
+  }
+
+  function setBanner(cls, title, desc, holdPct) {
+    $('banner').className = cls; $('bTitle').textContent = title; $('bDesc').textContent = desc;
+    $('bar').style.display = holdPct == null ? 'none' : 'block';
+    if (holdPct != null) $('barFill').style.width = holdPct + '%';
+  }
+
+  function onState(d) {
+    lastMsg = Date.now();
+    $('vz').innerHTML = `${(d.z ?? 0).toFixed(2)}<small> m</small>`;
+    $('vv').innerHTML = `${(d.v ?? 0).toFixed(2)}<small> m/s</small>`;
+    $('vp').textContent = d.slot == null ? 'Không có mục tiêu' : d.z >= 1.0 ? '🧍 Đứng' : d.z >= 0.5 ? '🪑 Ngồi / cúi' : '🛏️ Sát sàn';
+    $('ve').textContent = d.c ? '🟢 Đang nhận' : '🔴 Chưa kết nối';
+
+    if (d.s === 'MONITORING') setBanner('b-mon', '🟢 AN TOÀN – ĐANG GIÁM SÁT', 'Tư thế người dùng bình thường.');
+    else if (d.s === 'SUSPECTED_FALL') {
+      setBanner('b-sus', `🟡 NGHI NGÃ – xác minh ${d.h.toFixed(1)}s / 8s`, 'Phát hiện hạ thấp nhanh, đang chờ xác nhận bất động sát sàn.', Math.min(100, d.h / 8 * 100));
+      beep(440, .08);
+    } else if (d.s === 'ALARM_TRIGGERED') {
+      setBanner('b-alm', '🚨 PHÁT HIỆN TÉ NGÃ!', 'Người dùng ngã nhanh và nằm bất động trên sàn quá 8 giây.');
+      beep(980, .35);
+      if (navigator.vibrate) navigator.vibrate([400, 150, 400]);
+    }
+    lastState = d.s;
+
+    hist.push(d.z ?? 0); if (hist.length > 120) hist.shift();  // 4 msg/s * 30 s
+    draw();
+  }
+
+  function onAlarm(a) {
+    const tb = $('log');
+    if (tb.dataset.empty !== '0') { tb.innerHTML = ''; tb.dataset.empty = '0'; }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="mono">${(a.wall_time || '').split(' ')[0]}</td><td class="mono">${a.latency_s}s</td>
+                    <td class="mono">${a.v_peak_mps} m/s</td><td class="mono">${a.z_floor_m} m</td>`;
+    tb.prepend(tr);
+    if (alertsOn && 'Notification' in window && Notification.permission === 'granted') {
+      try { new Notification('🚨 Phát hiện té ngã!', { body: `Lúc ${a.wall_time} – V_peak ${a.v_peak_mps} m/s` }); } catch (e) {}
+    }
+  }
+
+  function draw() {
+    const c = $('chart'), x = c.getContext('2d'), W = c.width, H = c.height, maxZ = 2.0;
+    x.clearRect(0, 0, W, H);
+    x.strokeStyle = 'rgba(255,255,255,.07)'; x.fillStyle = 'rgba(255,255,255,.35)'; x.font = '18px monospace';
+    for (let z = 0; z <= 2; z += 0.5) { const y = H - z / maxZ * H; x.beginPath(); x.moveTo(0, y); x.lineTo(W, y); x.stroke(); x.fillText(z.toFixed(1), 4, y - 4); }
+    const fy = H - 0.4 / maxZ * H;
+    x.setLineDash([8, 8]); x.strokeStyle = 'rgba(239,68,68,.6)'; x.beginPath(); x.moveTo(0, fy); x.lineTo(W, fy); x.stroke(); x.setLineDash([]);
+    x.strokeStyle = '#38bdf8'; x.lineWidth = 4; x.beginPath();
+    hist.forEach((z, i) => { const px = i / 119 * W, py = H - Math.max(0, Math.min(maxZ, z)) / maxZ * H; i ? x.lineTo(px, py) : x.moveTo(px, py); });
+    x.stroke(); x.lineWidth = 1;
+  }
+
+  function setConn(ok, text) { $('conn').className = 'pill ' + (ok ? 'on' : 'off'); $('connTx').textContent = text; }
+
+  const client = mqtt.connect(URL_WS, { clientId: 'phone-' + Math.random().toString(16).slice(2, 10), reconnectPeriod: 2000, clean: true });
+  client.on('connect', () => { setConn(true, 'Cloud: đã kết nối'); client.subscribe(BASE + '/#'); });
+  client.on('reconnect', () => setConn(false, 'Đang kết nối lại...'));
+  client.on('offline', () => setConn(false, 'Mất mạng'));
+  client.on('error', e => setConn(false, 'Lỗi: ' + e.message));
+  client.on('message', (topic, msg) => {
+    const sub = topic.slice(BASE.length + 1), text = msg.toString();
+    if (sub === 'online') { pcOnline = text === '1'; return; }
+    try {
+      if (sub === 'state') onState(JSON.parse(text));
+      else if (sub === 'alarm') onAlarm(JSON.parse(text));
+    } catch (e) { console.warn(e); }
+  });
+
+  // PC offline watchdog
+  setInterval(() => {
+    if (pcOnline === false || (lastMsg && Date.now() - lastMsg > 5000)) {
+      setBanner('b-off', '⚪ PC không gửi dữ liệu', pcOnline === false ? 'Chương trình trên máy tính đã tắt.' : 'Quá 5 giây không nhận được trạng thái.');
+      $('ve').textContent = '⚪ Không rõ';
+    }
+  }, 1000);
+  draw();
+</script>
+</body>
+</html>
