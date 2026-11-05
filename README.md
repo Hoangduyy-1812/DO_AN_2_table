@@ -7,7 +7,7 @@
 
 ---
 
-## 📌 Tổng quan kho mã nguồn (Repository Structure)
+## Tổng quan kho mã nguồn (Repository Structure)
 
 ```text
 DO_AN_2_table/
@@ -32,9 +32,9 @@ DO_AN_2_table/
 
 ---
 
-## 📊 Kết quả Thực nghiệm & Kiểm chứng Độc lập (Experimental Results)
+##  Kết quả Thực nghiệm & Kiểm chứng 
 
-### 1. Đánh giá Cấp độ Sự kiện FSM Offline (Tập Test Lượt 03 - 24 File giữ riêng)
+### 1. Đánh giá Sự kiện FSM Offline (Tập Test Lượt 03 - 24 File giữ riêng)
 *Thuật toán phát hiện sự kiện rơi đột ngột kết hợp xác minh nằm bất động $\ge 8.0\text{ s}$, áp dụng luật ghép cặp 1-1 và đếm cảnh báo dư:*
 
 | Tiêu chí đánh giá sự kiện | Kết quả thực tế | Ghi chú kỹ thuật |
@@ -45,7 +45,7 @@ DO_AN_2_table/
 | **Cảnh báo dư (Spurious Alarms)** | **0 cảnh báo** (trên 3 file ngã) | Mỗi cú ngã chỉ kích hoạt duy nhất 1 lần chuông báo |
 | **Độ trễ cảnh báo trung bình** | **~8,01 giây** | Thời gian xác nhận nằm bất động sau va chạm |
 
-### 2. Mô hình Toàn phiên Baseline SVM (RBF Kernel)
+### 2. Mô hình Toàn phiên Baseline SVM 
 - **Tập Train (Lượt 01 + 02 - 47 file):** Accuracy **91,49%**, F1-score lớp Ngã **66,67%**.
 - **Tập Test giữ riêng (Lượt 03 - 24 file):** Accuracy **95,83% (23 / 24 file)**, F1-score lớp Ngã **85,71%**.
 
@@ -55,7 +55,7 @@ DO_AN_2_table/
 
 ---
 
-## 🚀 Hướng dẫn Chạy Thử nghiệm (How to Run)
+## Hướng dẫn Chạy Thử nghiệm (How to Run)
 
 ### 1. Tái lập Kết quả Đánh giá Sự kiện FSM Offline
 Chạy script đánh giá trên tập kiểm thử Lượt 03:
@@ -79,9 +79,9 @@ python web_dashboard.py
 ```
 - Tự động mở trình duyệt tại: **`http://localhost:8080`**.
 - Lắng nghe kết nối TCP từ ESP32 tại cổng: **`9000`**.
-- Hỗ trợ nút **`🧪 Giả lập Ngã Demo`** trực tiếp trên Web để thử nghiệm phản ứng của còi báo và đồ thị mà không cần tự ngã.
+- Hỗ trợ nút **` Giả lập Ngã Demo`** trực tiếp trên Web để thử nghiệm phản ứng của còi báo và đồ thị mà không cần tự ngã.
 
-### 4. Khởi động Terminal Receiver (Console HUD)
+### 4. Khởi động Terminal Receiver 
 Nếu chỉ muốn chạy giao diện dòng lệnh:
 ```bash
 cd pc_live_demo
