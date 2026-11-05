@@ -1,9 +1,9 @@
 # HỆ THỐNG PHÁT HIỆN TÉ NGÃ TRONG NHÀ SỬ DỤNG CẢM BIẾN mmWAVE RADAR 24GHz & FSM
 
-> **Đồ án Chuyên ngành 2 & Luận văn Tốt nghiệp ngành Kỹ thuật Điện tử - Viễn thông / Hệ thống Nhúng**  
+> **Đồ án 2 ngành Kỹ thuật Điện tử - Viễn thông / Hệ thống Nhúng**  
 > **Cảm biến:** HLK-LD2450 (24GHz FMCW mmWave Radar, UART 256.000 bps, 10-11 Hz)  
-> **Cơ cấu phần cứng:** ESP32-S3 FreeRTOS TCP Bridge | Kỹ thuật lắp xoay dọc $90^\circ$ ($H_{\text{mount}} = 1.7\text{ m}$)  
-> **Xử lý trung tâm:** Finite State Machine (FSM 4 trạng thái) & Real-time Web Dashboard trên PC
+> **Phần cứng:** ESP32-Wroom 30 chân FreeRTOS TCP Bridge | Kỹ thuật lắp xoay dọc $90^\circ$ ($H_{\text{mount}} = 1.7\text{ m}$)  
+> **Máy trạng thái:** Finite State Machine (FSM 4 trạng thái) & Real-time Web Dashboard trên PC
 
 ---
 
@@ -87,4 +87,4 @@ Nếu chỉ muốn chạy giao diện dòng lệnh:
 cd pc_live_demo
 python live_receiver.py --port 9000 --trial DEMO_LIVE_01 --activity kiem_chung_fsm
 ```
-*(Mỗi khung hình hiển thị: Mốc thời gian, Tọa độ $X, Y$, Cao độ $\hat{Z}$, Vận tốc và Trạng thái FSM đếm ngược thời gian nằm sàn)*.
+*(Mỗi khung hình hiển thị: Mốc thời gian, Tọa độ X, Y, Cao độ Z, Vận tốc và Trạng thái FSM đếm ngược thời gian nằm sàn)*.
