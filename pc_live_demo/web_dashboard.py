@@ -589,7 +589,7 @@ HTML_PAGE = """<!DOCTYPE html>
       const mlMode = data.detector_mode === 'ML_2S_FSM';
       const modelName = data.model_name || 'Random Forest';
       document.getElementById('detector-mode').innerText = mlMode ?
-        modelName + ' 2 giây + FSM' : 'FSM theo ngưỡng';
+        (data.candidate_mode === 'or' ? 'FSM OR ' : '') + modelName + ' · Hậu kiểm 8 giây' : 'FSM theo ngưỡng';
       if (data.runtime_config) {
         const cfg = data.runtime_config;
         let status = ' · H=' + cfg.h_mount_m.toFixed(2) + 'm';
@@ -603,6 +603,8 @@ HTML_PAGE = """<!DOCTYPE html>
       // Time
       document.getElementById('current-time-text').innerText = `${data.t_s.toFixed(1)}s`;
 
+      const triggerNames = {RULE: 'FSM', ML: 'SVM', 'RULE+ML': 'FSM + SVM'};
+      const triggerName = source => triggerNames[source] || 'Chưa có';
       const targets = data.raw_targets || [];
       const delayed = data.note === 'BACKLOG_EXCEEDED' || data.note === 'PC_ANALYSIS_DELAY';
       const statesBySlot = new Map((data.target_states || []).map(target => [target.slot, target]));
@@ -616,7 +618,8 @@ HTML_PAGE = """<!DOCTYPE html>
         const scoreLabel = modelName.startsWith('SVM RBF') ? 'Điểm SVM' : 'Điểm AI';
         const score = mlMode ? (track.ml_score == null ? ' · Đang gom khung' :
           ` · ${scoreLabel} ${track.ml_score.toFixed(2)}`) : '';
-        return `${location} · Z ${track.z_est_m.toFixed(2)} m · ${stateLabels[track.state]}${score}`;
+        return `${location} · Z ${track.z_est_m.toFixed(2)} m · ${stateLabels[track.state]}${score}` +
+          (track.trigger_source ? ` · Nguồn nghi ngã: ${triggerName(track.trigger_source)}` : '');
       }).join('\\n');
       const hasTrack = data.slot != null;
       const hasFrame = Number.isFinite(data.backlog_ms);
@@ -676,7 +679,7 @@ HTML_PAGE = """<!DOCTYPE html>
       } else if (data.state === 'SUSPECTED_FALL') {
         banner.className = 'banner-suspected';
         bTitle.innerText = `🟡 S${data.slot} NGHI NGÃ - ĐANG XÁC MINH NẰM SÀN (${data.hold_time_s.toFixed(1)}s / 8.0s)`;
-        bDesc.innerText = mlMode ? 'Mô hình nghi ngã. FSM đang xác nhận mục tiêu tiếp tục ở sát sàn.' : 'Phát hiện hạ thấp nhanh. FSM đang xác nhận mục tiêu tiếp tục ở sát sàn.';
+        bDesc.innerText = `Nguồn nghi ngã: ${triggerName(data.trigger_source)}. Đang theo dõi duy trì thấp đủ 8 giây.`;
         cWrap.style.display = 'block';
         const pct = Math.min(100, (data.hold_time_s / 8.0) * 100);
         pBar.style.width = `${pct}%`;
@@ -686,7 +689,7 @@ HTML_PAGE = """<!DOCTYPE html>
         const alarmSlots = [...statesBySlot.values()]
           .filter(track => track.state === 'ALARM_TRIGGERED').map(track => `S${track.slot}`);
         bTitle.innerText = `🚨 CẢNH BÁO TÉ NGÃ · ${alarmSlots.join(', ')}`;
-        bDesc.innerText = 'Đã phát hiện dấu hiệu ngã và xác nhận mục tiêu ở sát sàn trong 8 giây.';
+        bDesc.innerText = `Nguồn nghi ngã của S${data.slot}: ${triggerName(data.trigger_source)}. Đã duy trì thấp đủ 8 giây.`;
         cWrap.style.display = 'none';
         playBeep(980, 0.3); // loud emergency siren
       }
@@ -991,6 +994,8 @@ def main():
     parser.add_argument("--out", type=Path, default=Path("data_web_session"))
     parser.add_argument("--no-browser", action="store_true", help="Do not automatically open web browser")
     parser.add_argument("--model", type=Path, help="Use a trained 2-second SVM or Random Forest model")
+    parser.add_argument("--candidate-mode", choices=("ml", "or"), default="ml",
+                        help="Candidate from ML alone or rule FSM OR SVM")
     parser.add_argument("--fsm-config", type=Path,
                         default=Path(__file__).parent / 'fsm_parameters_1p7m.json')
     parser.add_argument("--height", type=float, help="Actual PC mounting height in metres (1.00 to 2.50)")
@@ -1006,6 +1011,8 @@ def main():
     parser.add_argument("--mqtt-topic", default="doan2/hoangduy1812/ld2450",
                         help="Topic goc; trang dien thoai phai dung cung topic nay")
     args = parser.parse_args()
+    if args.candidate_mode == "or" and args.model is None:
+        parser.error("OR mode requires --model with a six-feature SVM bundle")
 
     global mqtt_pub, global_detector, ml_model_name, posture_mode, posture_config, posture_detectors
     posture_mode = args.posture_mode
@@ -1043,6 +1050,8 @@ def main():
             parser.error(str(exc))
 
         classifier = bundle.get("classifier", "rf")
+        if args.candidate_mode == "or" and (classifier != "svm" or feature_set != "6"):
+            parser.error("OR mode requires the six-feature SVM bundle")
         if classifier == "svm" and callable(getattr(model, "decision_function", None)):
             ml_model_name = "SVM RBF"
 
@@ -1060,6 +1069,7 @@ def main():
         global_detector = MultiTargetFallDetector(
             **settings, window_score=score_window,
             ml_threshold=bundle["threshold"], feature_set=feature_set,
+            candidate_mode=args.candidate_mode,
         )
     last_frame_info.update(global_detector.get_summary(0, note="Chờ kết nối ESP32..."))
     last_frame_info['model_name'] = ml_model_name
@@ -1071,7 +1081,9 @@ def main():
         record = {'wall_time': dt.datetime.now().isoformat(), **runtime_config,
                   'fsm_settings_at_start': settings,
                   'posture_mode': posture_mode, 'posture_config': posture_config,
-                  'model': str(args.model) if args.model else None}
+                  'model': str(args.model) if args.model else None,
+                  'candidate_mode': args.candidate_mode if args.model else 'rule',
+                  'ml_threshold': bundle['threshold'] if args.model else None}
         with (config_log_dir/'configuration_changes.ndjson').open('a',encoding='utf-8') as f:
             f.write(json.dumps(record,ensure_ascii=False)+'\n')
     log_configuration()
@@ -1108,6 +1120,7 @@ def main():
     print(f"   * Truy cap Dashboard tai trinh duyet: {web_url}")
     print(f"   * Dang lang nghe ket noi TCP tu ESP32 tai cong: {args.tcp_port}")
     print(f"   * Mô hình: {ml_model_name + ' 2 giây + FSM' if ml_model_name else 'FSM theo ngưỡng'}")
+    print(f"   * Candidate mode: {'FSM OR SVM' if args.candidate_mode == 'or' else 'ML' if args.model else 'RULE'}")
     print(f"   * FSM config: {args.fsm_config}; H_mount khởi tạo={runtime_config['h_mount_m']:.2f} m")
     print(f"   * Posture mode: {posture_mode}; ngưỡng tư thế: {posture_config}")
     if args.esp32_url:

@@ -1,102 +1,81 @@
-# Thử trực tiếp ngưỡng trạng thái cũ và ngưỡng lấy từ dữ liệu
+# PC live demo — FSM OR SVM 6 đặc trưng
 
-Đúng mục tiêu: thay thử ngưỡng nhận diện trạng thái bằng giá trị chọn từ dữ liệu repo rồi đo lại trên cùng khung dữ liệu. Gói này có dashboard chạy được với ba chế độ đối chiếu, không chỉ là bảng ngưỡng.
+Bản cập nhật theo yêu cầu ngày 13/11/2026: một trong hai nhánh FSM động học hoặc SVM đạt điều kiện thì bắt đầu NGHI NGÃ. Hậu kiểm giữ nguyên: quan sát cao độ thấp liên tục đủ 8 giây trên chuỗi dữ liệu hợp lệ mới phát cảnh báo.
 
-## Kết quả trực tiếp
+## Chạy trên Windows
 
-Chỉ so sánh ba nhóm mà bản cũ thực sự có: Đứng; Ngồi/Cúi; Ở thấp/Nằm. Cùng 12.356 khung có nhãn đủ điều kiện trong 21 phiên lượt 03:
+1. Dừng dashboard cũ. Giữ thư mục cũ làm bản sao để không mất dữ liệu đã thu.
+2. Giải nén thư mục pc_live_demo mới, không chép đè lẫn các module của bản khác.
+3. Nếu chưa có thư viện, chạy CAI_THU_VIEN.cmd (Python 3.12).
+4. Chạy **CHAY_FSM_OR_SVM.cmd**. Chỉ có một file chạy chính; không còn các file chạy A/B/C.
+5. Mở http://localhost:8080. Terminal phải có dòng `CANDIDATE: FSM OR SVM`; dashboard phải ghi `FSM OR SVM RBF (6 đặc trưng)`.
 
-| Chỉ tiêu | Ngưỡng cũ | Ngưỡng từ dữ liệu |
-|---|---:|---:|
-| Tỷ lệ đúng theo khung | 86,92% | 91,84% |
-| Macro F1 ba nhóm | 85,62% | 90,93% |
-| Nhận đúng nhóm Đứng (recall) | 81,98% | 89,13% |
-| Nhận đúng nhóm Ngồi/Cúi (recall) | 84,05% | 91,72% |
-| Nhận đúng nhóm Nằm (recall) | 100,00% | 97,80% |
+Lệnh tương đương:
 
-19/21 phiên có số khung đúng tăng, 2/21 giảm. Các khung trong một phiên tương quan; không coi 12.356 khung là 12.356 thử nghiệm độc lập.
+```bat
+py -3.12 run_fsm_or_svm.py --esp32-url http://radar.local
+```
 
-Khi thử FSM nhân quả tách đủ bốn nhãn, recall Đứng 89,13%, Ngồi 85,96%, Cúi 32,91%, Nằm 97,80%; macro F1 bốn lớp 74,46%. Cúi vẫn phân biệt kém. Bản cũ không tách Ngồi/Cúi nên không gán cho nó một accuracy bốn lớp để so sánh sai.
+Nếu dùng IP thật của ESP32, thay URL trên. Nếu không đồng bộ chiều cao qua API, chạy với chiều cao thật, ví dụ:
 
-Không trình bày mức 91,84% là accuracy phát hiện ngã hoặc accuracy bốn hành vi. Đó là tỷ lệ đúng theo khung của ba nhóm trạng thái chung giữa hai bản.
+```bat
+py -3.12 run_fsm_or_svm.py --height 1.70
+```
 
-## Ngưỡng được thay thật
+Ngưỡng tư thế được hiệu chỉnh ở H = 1,70 m. Khi bật đọc chiều cao ESP32, H = 1,70 m là giá trị ban đầu cho tới khi API trả về thành công; xem trạng thái đồng bộ trên giao diện.
 
-| Tham số | Cũ | Chọn từ lượt 01–02 |
-|---|---:|---:|
-| Ranh giới Ở thấp/Nằm và Ngồi/Cúi | 0,480 m | 0,3555 m |
-| Ranh giới Ngồi/Cúi và Đứng | 1,000 m | 0,9155 m |
-| Mức hạ thấp để dự đoán nghi cúi | Chưa có | 0,241 m |
-| Thời gian theo dõi nghi cúi | Chưa có | 2,49 giây |
+## Điều kiện chính xác
 
-Hai ngưỡng cao độ được chọn trên KHUNG hợp lệ của lượt 01–02, tối đa hóa recall trung bình ba nhóm. BEND được gộp cùng SIT khi so sánh chung. Đây khác phép khảo sát trước chỉ dùng trung vị theo ĐOẠN tư thế tĩnh; vì vậy kết quả 0,3555/0,9155 không phải hai ứng viên 0,293/0,9045 trước đó.
+**Nhánh FSM động học:** trong 1,25 s có cao độ trước đó >= 0,90 m; hiện tại Z < 0,40 m; giảm ít nhất 0,50 m; vận tốc xuyên tâm đỉnh >= 0,78 m/s.
 
-Ứng viên ngưỡng cúi lấy từ phân vị mức hạ/thời lượng của các đoạn BEND trong lượt 01–02, rồi chọn bằng macro F1 bốn lớp trên phần phát triển. Chỉ sau khi chốt cấu hình mới replay lượt 03. Không chọn lại tham số theo kết quả lượt 03.
+**Nhánh SVM:** có cửa sổ hợp lệ gần đủ 2 giây; điểm SVM mới tính >= 0,2 và Z < 0,48 m. Điểm là decision_function, không phải xác suất 20%.
 
-## Cách chạy A/B
+Chỉ cần một nhánh đúng là chuyển ngay sang SUSPECTED_FALL. Không cần chờ cả hai đồng ý. Nhánh FSM vẫn được xét khi SVM đang gom cửa sổ. Điểm SVM cũ chỉ được hiển thị tham khảo, không dùng để kích hoạt nghi ngã ở khung chưa có suy luận mới.
 
-Dừng dashboard cũ bằng Ctrl+C. Giải nén gói này ra thư mục mới và mở PowerShell trong thư mục chứa web_dashboard.py:
+Ứng viên ghi nguồn tại thời điểm tạo: RULE (FSM), ML (SVM) hoặc RULE+ML (cả hai đúng ở khung tạo ứng viên). Nhánh còn lại kích hoạt muộn hơn không khởi động lại đồng hồ 8 giây. Khi đã nghi ngã, việc điểm SVM giảm không tự hủy ứng viên; Z >= 0,48 m hoặc reset dữ liệu sẽ hủy. Mất slot, khoảng khung > 0,35 s, timestamp không tăng, đổi nguồn, bỏ khung hoặc trễ vượt mức cho phép vẫn có thể reset theo quy tắc của bản PC trước.
 
-    py -3.12 -m pip install -r requirements.txt
+ALARM_TRIGGERED sau khi liên tục ở thấp đủ 8 giây; Z >= 0,55 m tái kích hoạt. Đây là hậu kiểm duy trì thấp, không phải xác nhận vận tốc bằng 0 suốt 8 giây.
 
-Sau đó nhấp đúp đúng một file:
+## Hiển thị và nhiều mục tiêu
 
-| File chạy | Chế độ |
+Ba slot có cửa sổ, FSM và ứng viên riêng. Nguồn nghi ngã được hiện trên banner và dòng trạng thái từng slot bên dưới bản đồ. Các ô lớn và đồ thị vẫn hiển thị một slot ưu tiên: báo động, rồi nghi ngã, rồi giám sát. Xử lý nhiều slot trong phần mềm không phải bằng chứng đã kiểm chứng với nhiều người thật và đổi danh tính slot.
+
+Nhãn tư thế giữ nguyên data3: Z >= 0,9155 m là Đứng; 0,3555 <= Z < 0,9155 m là Ngồi/Cúi; Z < 0,3555 m là Ở thấp/Nằm. Ngưỡng tư thế không thay ngưỡng hậu kiểm 0,48 m.
+
+## Các file thay đổi
+
+| File | Thay đổi |
 |---|---|
-| CHAY_A_NGUONG_CU.cmd | SVM bộ 6 + FSM báo ngã; phân nhóm tư thế dùng ngưỡng cũ |
-| CHAY_B_NGUONG_TU_DU_LIEU.cmd | Cùng SVM/FSM báo ngã, thay hai ngưỡng tư thế bằng ngưỡng từ dữ liệu |
-| CHAY_C_THU_4_HANH_VI.cmd | Thử thêm nhánh nghi cúi theo quá trình hạ người, còn hạn chế |
+| live_fall_fsm.py | Thêm candidate_mode=or, kiểm tra hai nhánh độc lập, lưu trigger_source |
+| web_dashboard.py | Truyền chế độ OR, hiện chế độ và nguồn nghi ngã, ghi cấu hình phiên |
+| run_fsm_or_svm.py | Luôn nạp đúng SVM 6 đặc trưng và bật OR |
+| CHAY_FSM_OR_SVM.cmd | Lệnh chạy chính thay các runner cũ |
+| replay_or.py | So sánh ba chế độ bằng mô hình cố định, không huấn luyện lại |
+| test_or_detector.py | Kiểm tra nhánh độc lập, hậu kiểm, nguồn kích hoạt, mất dấu và ba slot |
 
-Mở http://localhost:8080. ESP32 tiếp tục gửi TCP tới IPv4 PC tại cổng 9000. Không chạy hai bản cùng lúc trên cùng cổng. Các file chạy cũng đọc H_mount từ http://radar.local/api/state như gói trước.
+Model SVM và sáu công thức đặc trưng giữ nguyên. Firmware ESP32 không được sửa; chưa có đường gửi kết quả AI từ PC về ESP32. Nhánh FSM trong OR là luật trên PC, không lấy trực tiếp cờ báo động từ radar.local.
 
-Lệnh tương ứng:
+## Kết quả replay mới
 
-    py -3.12 web_dashboard.py --model models/fall_svm_6f_2s.joblib --posture-mode old --esp32-url http://radar.local --no-mqtt
-    py -3.12 web_dashboard.py --model models/fall_svm_6f_2s.joblib --posture-mode data3 --esp32-url http://radar.local --no-mqtt
-    py -3.12 web_dashboard.py --model models/fall_svm_6f_2s.joblib --posture-mode data4 --esp32-url http://radar.local --no-mqtt
+Cùng 24 phiên lượt 03, 10 sự kiện ngã tham chiếu và 21 phiên không ngã; không chỉnh model hoặc ngưỡng theo kết quả này:
 
-Dừng lệnh trước rồi chạy lệnh tiếp theo. Bỏ --esp32-url nếu chỉ thử chiều cao cố định 1,70 m từ cấu hình. Nếu dùng IP thay radar.local thì phải là IP thực tế của ESP32.
+| Cách tạo nghi ngã | Phát hiện / 10 | Bỏ sót | Cảnh báo sai/dư | Event F1 | Trễ trung bình |
+|---|---:|---:|---:|---:|---:|
+| FSM thuần PC | 8 | 2 | 0 | 88,89% | 7,930 s |
+| SVM 6 đặc trưng + hậu kiểm | 7 | 3 | 1 | 77,78% | 8,173 s |
+| FSM OR SVM + hậu kiểm | 8 | 2 | 1 | 84,21% | 7,908 s |
 
-## FSM bốn tư thế thử nghiệm hoạt động thế nào?
+OR bắt thêm một sự kiện so với SVM riêng trong phép replay này; chưa bắt thêm so với FSM thuần và vẫn có một báo sai. OR không đảm bảo hết bỏ sót. Không lấy kết quả này làm độ chính xác thời gian thực trên thiết bị của người dùng.
 
-- Cao độ >=0,9155 m: STAND.
-- Cao độ <0,3555 m: LYING (trên UI ghi Ở THẤP/NẰM vì Z là proxy).
-- Vùng giữa: SIT, trừ khi có quá trình vừa rời vùng đứng, hạ >=0,241 m và chưa quá 2,49 giây; khi đó dự đoán BEND.
-- BEND là dự đoán nhân quả NGHI CÚI trong quá trình hạ, chưa phải xác nhận nhờ biết trước rằng người sẽ đứng lại. Giao diện ghi rõ “NGHI CÚI (đang theo dõi)”.
-- Nếu tiếp tục ở vùng giữa quá thời gian theo dõi thì chuyển về SIT. Khi đứng lại thì chuyển STAND; không dùng tương lai để sửa nhãn các khung đã qua.
-- Mất slot, đổi nguồn, bỏ khung hoặc thay chiều cao sẽ reset bộ theo dõi; khoảng cách khung >0,35 giây cũng reset.
+Chi tiết, nguồn cảnh báo và giới hạn trong `results/or_comparison.json`. Nhãn bán tự động từ radar, phép replay lọc chất lượng đơn mục tiêu giống thí nghiệm cũ; lượt 03 đã được xem trước, không phải kiểm thử mù mới. Độ trễ tính từ đầu nhãn LYING_POST_FALL đến cảnh báo của sự kiện ghép được, không phải lúc người thật bắt đầu ngã. `models/metrics_svm_6f.json` là kết quả SVM trước cập nhật OR, giữ để truy vết.
 
-Nhánh này dễ nhầm ngồi xuống thành nghi cúi trong thời gian đầu. Kết quả recall cúi 32,91% cho thấy chưa đủ tốt để dùng như bộ nhận diện bốn hành vi hoàn chỉnh.
+Tái lập (data-root chứa A_direction, B_direction, C_direction và 04_DA_CHIA_NHAN_GIAI_DOAN):
 
-## Phần phát hiện ngã được giữ riêng
+```bat
+py -3.12 replay_or.py --data-root "DUONG_DAN_DU_LIEU"
+py -3.12 -m unittest discover -p "test_*.py"
+```
 
-SVM vẫn dùng sáu đặc trưng gốc, cửa sổ 2 giây và mô hình đã train. FSM phát cảnh báo ngã vẫn giữ cấu hình trước, bao gồm thời gian duy trì thấp 8 giây. Ngưỡng tư thế 0,3555 m KHÔNG thay ngưỡng hậu kiểm ngã 0,48 m. Thử đổi ngưỡng tư thế không được gọi là đã nâng recall ngã.
+Đã chạy đạt 37 kiểm tra phần mềm; kiểm tra HTTP, TCP ACK và SSE với ba slot mô phỏng dùng model SVM thật; kiểm tra cú pháp JavaScript. Chưa thử trên Windows/ESP32 thật của người dùng. Kiểm tra luồng mô phỏng không thay thế đánh giá độ chính xác phát hiện ngã.
 
-Hai file mô hình 6 đặc trưng trong models giữ nguyên byte so với gói LD2450_CHAY_TRUC_TIEP_6F. Không thay đầu vào ML, không train lại để làm số liệu tư thế đẹp hơn.
-
-## Tái lập từ dữ liệu repo
-
-Dữ liệu samples.csv A/B/C và bảng nhãn thuộc bộ DO_AN_2 đã đối chiếu với repo Hoangduyy-1812/DO_AN_2_table. Tập phát triển lượt 01–02, phần đánh giá lượt 03. Gói không kèm lại toàn bộ dữ liệu.
-
-Trong thư mục evaluation:
-
-    py -3.12 compare_postures.py --data-root "DUONG_DAN/comparison_data" --out results_tu_chay
-
-comparison_data nằm trong gói LD2450_AI_6F_2s_SO_SANH.zip đã gửi trước, hoặc dùng thư mục gốc dữ liệu tương ứng trong repo.
-
-results/comparison.json chứa ma trận nhầm lẫn, số khung theo lớp và kết quả từng phiên. test_frame_predictions.csv chứa timestamp, Z, nhãn tham chiếu, kết quả cũ và mới để kiểm tra từng khung. development_search.json ghi toàn bộ lưới thử tham số cúi.
-
-## Phạm vi đánh giá
-
-- Tham chiếu bốn tư thế chỉ gồm STAND, SIT, BEND, LYING và LYING_POST_FALL (hai nhãn nằm gộp thành LYING).
-- Không ép WALK, SQUAT, FALL hoặc các pha chuyển tiếp vào một trong bốn nhãn khi đánh giá; chúng vẫn chạy qua bộ theo dõi nhưng không tính accuracy bốn nhãn. Không được suy rộng kết quả cho toàn bộ tám kịch bản.
-- Cả bản cũ và mới dùng cùng dữ liệu valid: một slot, backlog<=500 ms, lọc trung vị ba mẫu và reset khi đứt chuỗi. Không chọn riêng khung thuận lợi cho bản mới.
-- Nhãn phân đoạn bán tự động từ radar, có thể phụ thuộc ngưỡng/quy tắc và có đoạn chưa hoàn hảo. Đây chưa phải ground truth độc lập.
-- Lượt 03 đã được xem trong các phân tích trước; phép thử mang tính thăm dò, chưa phải một đợt kiểm thử mù mới.
-- Kết quả thuộc cấu hình 1,70 m. Nhập H_mount khác chỉ cập nhật công thức, không tự xác nhận ngưỡng mới phù hợp ở độ cao đó.
-
-## Kiểm tra
-
-    py -3.12 -m unittest discover -p "test_*.py"
-
-27 kiểm tra phần mềm đã qua. Đã thử HTTP/TCP thật trong môi trường kiểm tra, gửi 25 khung mô phỏng cho từng chế độ old/data3/data4, nhận ACK và kiểm tra nhãn tư thế trong SSE. Chưa thử trên ESP32 thật hoặc máy Windows của người dùng.
+Để khảo sát baseline bằng CLI chuyên dụng, web_dashboard.py vẫn hỗ trợ chế độ ML mặc định. Khi sử dụng hằng ngày, luôn dùng CHAY_FSM_OR_SVM.cmd hoặc run_fsm_or_svm.py để bảo đảm bật OR.

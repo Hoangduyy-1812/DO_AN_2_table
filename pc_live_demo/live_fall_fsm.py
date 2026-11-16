@@ -1,11 +1,12 @@
 """Real-time online FSM Fall Detector for LD2450.
 Receives frames incrementally from TCP stream or file.
 State Machine:
-  MONITORING -> (rapid descent >= 0.78 m/s, dz >= 0.5m) -> SUSPECTED_FALL -> (stay on floor >= 8.0s) -> ALARM_TRIGGERED
+  MONITORING -> rule / ML / (rule OR ML) candidate -> SUSPECTED_FALL
+  -> continuous low posture for 8 s -> ALARM_TRIGGERED
 Reset rules:
   - Any time gap > 0.35s
   - Any slot change (target report slot differs)
-  - active_count != 1 (no target or multi-target)
+  - Per child: exactly one target; MultiTargetFallDetector routes slots independently
   - backlog_ms > 500 ms
 """
 import statistics
@@ -19,9 +20,14 @@ class OnlineFallDetectorFSM:
                  window_score=None, ml_threshold=0.5, feature_set="6",
                  min_drop_m=0.50, trigger_floor_m=0.40,
                  low_hold_floor_m=0.48, rearm_height_m=0.55,
-                 prior_upright_m=0.90, lookback_s=1.25):
+                 prior_upright_m=0.90, lookback_s=1.25, candidate_mode="ml"):
         if feature_set not in FEATURE_SETS:
             raise ValueError("feature_set must be '6' or '9'")
+        if candidate_mode not in ("ml", "or"):
+            raise ValueError("candidate_mode must be ml or or")
+        if candidate_mode == "or" and window_score is None:
+            raise ValueError("OR mode requires a loaded model scorer")
+        self.candidate_mode = candidate_mode
         self.feature_set = feature_set
         self.h_mount = h_mount_mm
         self.v_thresh = v_thresh
@@ -104,43 +110,24 @@ class OnlineFallDetectorFSM:
 
         # FSM State Transitions
         if self.state == "MONITORING":
-            if self.window_score is not None:
-                if ml_score is not None and ml_score >= self.ml_threshold and zs < self.low_hold_floor_m:
-                    self.state = "SUSPECTED_FALL"
-                    self.fall_candidate = {
-                        'impact_t_s': t_s,
-                        'v_peak': max(point['v'] for point in self.recent_points
-                                      if point['t_us'] >= t_us - WINDOW_US),
-                        'drop_rate': None,
-                        'slot': slot,
-                        'ml_score': ml_score,
-                    }
-            elif zs < self.trigger_floor_m:
-                # Look back up to 1.25s for upright posture zs >= 0.90m within same unbroken stream
-                onset = None
-                for p in reversed(self.recent_points[:-1]):
-                    if t_s - p['t_s'] > self.lookback_s:
-                        break
-                    if p['zs'] >= self.prior_upright_m:
-                        onset = p
-                        break
-                if onset is not None:
-                    # Check descent parameters
-                    pts_descent = [p for p in self.recent_points if onset['t_s'] - 0.25 <= p['t_s'] <= t_s + 0.40]
-                    v_peak = max(p['v'] for p in pts_descent)
-                    dz = onset['zs'] - zs
-                    dt = max(0.09, t_s - onset['t_s'])
-                    drop_rate = dz / dt
-                    if v_peak >= self.v_thresh and dz >= self.min_drop_m:
-                        self.state = "SUSPECTED_FALL"
-                        self.fall_candidate = {
-                            'onset_t_s': onset['t_s'],
-                            'impact_t_s': t_s,
-                            'impact_t_us': t_us,
-                            'v_peak': v_peak,
-                            'drop_rate': drop_rate,
-                            'slot': slot
-                        }
+            rule = self.rule_candidate(t_us, slot, zs) if (
+                self.window_score is None or self.candidate_mode == "or") else None
+            ml_hit = (self.window_score is not None and ml_score is not None
+                      and ml_score >= self.ml_threshold and zs < self.low_hold_floor_m)
+            if rule is not None or ml_hit:
+                # Latch the first trigger; subsequent scores do not restart the 8 s hold.
+                self.state = "SUSPECTED_FALL"
+                self.fall_candidate = rule if rule is not None else {
+                    'impact_t_s': t_s,
+                    'v_peak': max(point['v'] for point in self.recent_points
+                                  if point['t_us'] >= t_us - WINDOW_US),
+                    'drop_rate': None,
+                    'slot': slot,
+                }
+                self.fall_candidate['trigger_source'] = (
+                    'RULE+ML' if rule is not None and ml_hit else 'RULE' if rule is not None else 'ML')
+                if ml_hit:
+                    self.fall_candidate['ml_score'] = ml_score
 
         elif self.state == "SUSPECTED_FALL":
             # Must stay on the floor (zs < 0.48m) without standing up
@@ -161,7 +148,8 @@ class OnlineFallDetectorFSM:
                         'drop_rate_mps': (round(self.fall_candidate['drop_rate'], 2)
                                           if self.fall_candidate['drop_rate'] is not None else None),
                         'z_floor_m': round(zs, 3),
-                        'slot': self.fall_candidate['slot']
+                        'slot': self.fall_candidate['slot'],
+                        'trigger_source': self.fall_candidate['trigger_source']
                     }
                     if 'ml_score' in self.fall_candidate:
                         alarm_info['ml_score'] = round(self.fall_candidate['ml_score'], 3)
@@ -174,6 +162,30 @@ class OnlineFallDetectorFSM:
 
         summary = self.get_summary(t_us, slot, x_mm, y_mm, zs, v_mps)
         return summary, alarm_info
+
+    def rule_candidate(self, t_us, slot, zs):
+        """Original causal rule trigger, independent of ML window readiness."""
+        if zs >= self.trigger_floor_m:
+            return None
+        t_s = t_us / 1e6
+        onset = None
+        for point in reversed(self.recent_points[:-1]):
+            if t_s - point['t_s'] > self.lookback_s:
+                break
+            if point['zs'] >= self.prior_upright_m:
+                onset = point
+                break
+        if onset is None:
+            return None
+        descent = [p for p in self.recent_points
+                   if onset['t_s'] - 0.25 <= p['t_s'] <= t_s]
+        v_peak = max(p['v'] for p in descent)
+        dz = onset['zs'] - zs
+        if v_peak < self.v_thresh or dz < self.min_drop_m:
+            return None
+        return {'onset_t_s': onset['t_s'], 'impact_t_s': t_s,
+                'impact_t_us': t_us, 'v_peak': v_peak,
+                'drop_rate': dz / max(0.09, t_s - onset['t_s']), 'slot': slot}
 
     def score_window(self, t_us):
         if self.last_window_us is not None and t_us - self.last_window_us < STEP_US:
@@ -201,6 +213,9 @@ class OnlineFallDetectorFSM:
             'hold_time_s': round(hold_time, 1),
             'note': note,
             'detector_mode': 'ML_2S_FSM' if self.window_score is not None else 'FSM',
+            'candidate_mode': self.candidate_mode if self.window_score is not None else 'rule',
+            'trigger_source': self.fall_candidate.get('trigger_source') if self.fall_candidate else None,
+            'ml_threshold': self.ml_threshold if self.window_score is not None else None,
             'feature_count': len(FEATURE_SETS[self.feature_set]) if self.window_score is not None else 0,
             'ml_score': round(self.last_ml_score, 3) if self.last_ml_score is not None else None,
         }
