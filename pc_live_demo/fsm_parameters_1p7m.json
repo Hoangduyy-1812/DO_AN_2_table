@@ -1,0 +1,11 @@
+{
+  "h_mount_mm": 1700.0,
+  "hold_s": 8.0,
+  "v_thresh": 0.78,
+  "min_drop_m": 0.5,
+  "trigger_floor_m": 0.4,
+  "low_hold_floor_m": 0.48,
+  "rearm_height_m": 0.55,
+  "prior_upright_m": 0.9,
+  "lookback_s": 1.25
+}

@@ -1,0 +1,1372 @@
+{
+  "config": {
+    "low_m": 0.3555,
+    "high_m": 0.9155,
+    "bend_drop_m": 0.241,
+    "bend_timeout_s": 2.49
+  },
+  "selection": "Development frame-level 3-group balanced recall for heights, then 4-class macro F1 for bend parameters.",
+  "candidate_grids": {
+    "bend_drop_m": [
+      0.102,
+      0.241,
+      0.53,
+      0.622
+    ],
+    "bend_timeout_s": [
+      0.638,
+      1.69,
+      2.49,
+      2.76,
+      3.47
+    ]
+  },
+  "development": {
+    "old": {
+      "common_three_groups": {
+        "frames": 25884,
+        "accuracy": 0.888309380312162,
+        "macro_f1": 0.87917128167358,
+        "per_class_recall": {
+          "STAND": 0.859776168531929,
+          "SIT_OR_BEND": 0.848026213137775,
+          "LYING": 1.0
+        },
+        "confusion_matrix": [
+          [
+            11754,
+            1831,
+            86
+          ],
+          [
+            47,
+            5435,
+            927
+          ],
+          [
+            0,
+            0,
+            5804
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "old_common_three_groups": {
+        "frames": 25884,
+        "accuracy": 0.888309380312162,
+        "macro_f1": 0.87917128167358,
+        "per_class_recall": {
+          "STAND": 0.859776168531929,
+          "SIT_OR_BEND": 0.848026213137775,
+          "LYING": 1.0
+        },
+        "confusion_matrix": [
+          [
+            11754,
+            1831,
+            86
+          ],
+          [
+            47,
+            5435,
+            927
+          ],
+          [
+            0,
+            0,
+            5804
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "reference_counts": {
+        "BEND": 872,
+        "STAND": 13671,
+        "SIT": 5537,
+        "LYING": 5804
+      },
+      "by_trial": [
+        {
+          "trial": "A_cui_nhat_do_01",
+          "frames": 394,
+          "old_correct": 369,
+          "new_correct": 369
+        },
+        {
+          "trial": "A_cui_nhat_do_02",
+          "frames": 364,
+          "old_correct": 311,
+          "new_correct": 311
+        },
+        {
+          "trial": "A_dung_ngoi_01",
+          "frames": 426,
+          "old_correct": 348,
+          "new_correct": 348
+        },
+        {
+          "trial": "A_dung_ngoi_02",
+          "frames": 617,
+          "old_correct": 542,
+          "new_correct": 542
+        },
+        {
+          "trial": "A_dung_ngoi_nhanh_02",
+          "frames": 666,
+          "old_correct": 632,
+          "new_correct": 632
+        },
+        {
+          "trial": "A_dung_yen_01",
+          "frames": 530,
+          "old_correct": 492,
+          "new_correct": 492
+        },
+        {
+          "trial": "A_dung_yen_02",
+          "frames": 639,
+          "old_correct": 572,
+          "new_correct": 572
+        },
+        {
+          "trial": "A_nam_chu_dong_01",
+          "frames": 175,
+          "old_correct": 112,
+          "new_correct": 112
+        },
+        {
+          "trial": "A_nam_chu_dong_02",
+          "frames": 255,
+          "old_correct": 253,
+          "new_correct": 253
+        },
+        {
+          "trial": "A_nga_mo_phong_01",
+          "frames": 728,
+          "old_correct": 698,
+          "new_correct": 698
+        },
+        {
+          "trial": "A_nga_mo_phong_02",
+          "frames": 796,
+          "old_correct": 784,
+          "new_correct": 784
+        },
+        {
+          "trial": "A_ngoi_xom_01",
+          "frames": 232,
+          "old_correct": 213,
+          "new_correct": 213
+        },
+        {
+          "trial": "A_ngoi_xom_02",
+          "frames": 196,
+          "old_correct": 191,
+          "new_correct": 191
+        },
+        {
+          "trial": "B_cui_nhat_do_01",
+          "frames": 602,
+          "old_correct": 556,
+          "new_correct": 556
+        },
+        {
+          "trial": "B_cui_nhat_do_02",
+          "frames": 765,
+          "old_correct": 707,
+          "new_correct": 707
+        },
+        {
+          "trial": "B_dung_ngoi_01",
+          "frames": 589,
+          "old_correct": 578,
+          "new_correct": 578
+        },
+        {
+          "trial": "B_dung_ngoi_02",
+          "frames": 649,
+          "old_correct": 643,
+          "new_correct": 643
+        },
+        {
+          "trial": "B_dung_ngoi_nhanh_01",
+          "frames": 595,
+          "old_correct": 589,
+          "new_correct": 589
+        },
+        {
+          "trial": "B_dung_ngoi_nhanh_02",
+          "frames": 541,
+          "old_correct": 533,
+          "new_correct": 533
+        },
+        {
+          "trial": "B_dung_yen_01",
+          "frames": 444,
+          "old_correct": 405,
+          "new_correct": 405
+        },
+        {
+          "trial": "B_dung_yen_02",
+          "frames": 540,
+          "old_correct": 535,
+          "new_correct": 535
+        },
+        {
+          "trial": "B_nam_chu_dong_01",
+          "frames": 1221,
+          "old_correct": 1204,
+          "new_correct": 1204
+        },
+        {
+          "trial": "B_nam_chu_dong_02",
+          "frames": 1158,
+          "old_correct": 1147,
+          "new_correct": 1147
+        },
+        {
+          "trial": "B_nga_mo_phong_01",
+          "frames": 921,
+          "old_correct": 891,
+          "new_correct": 891
+        },
+        {
+          "trial": "B_nga_mo_phong_02",
+          "frames": 1254,
+          "old_correct": 1230,
+          "new_correct": 1230
+        },
+        {
+          "trial": "B_ngoi_xom_01",
+          "frames": 213,
+          "old_correct": 209,
+          "new_correct": 209
+        },
+        {
+          "trial": "B_ngoi_xom_02",
+          "frames": 337,
+          "old_correct": 318,
+          "new_correct": 318
+        },
+        {
+          "trial": "C_cui_nhat_do_01",
+          "frames": 492,
+          "old_correct": 433,
+          "new_correct": 433
+        },
+        {
+          "trial": "C_cui_nhat_do_02",
+          "frames": 676,
+          "old_correct": 605,
+          "new_correct": 605
+        },
+        {
+          "trial": "C_dung_ngoi_01",
+          "frames": 582,
+          "old_correct": 461,
+          "new_correct": 461
+        },
+        {
+          "trial": "C_dung_ngoi_02",
+          "frames": 1019,
+          "old_correct": 802,
+          "new_correct": 802
+        },
+        {
+          "trial": "C_dung_ngoi_nhanh_01",
+          "frames": 1059,
+          "old_correct": 838,
+          "new_correct": 838
+        },
+        {
+          "trial": "C_dung_ngoi_nhanh_02",
+          "frames": 939,
+          "old_correct": 812,
+          "new_correct": 812
+        },
+        {
+          "trial": "C_dung_yen_01",
+          "frames": 540,
+          "old_correct": 321,
+          "new_correct": 321
+        },
+        {
+          "trial": "C_dung_yen_02",
+          "frames": 715,
+          "old_correct": 345,
+          "new_correct": 345
+        },
+        {
+          "trial": "C_nam_chu_dong_01",
+          "frames": 988,
+          "old_correct": 800,
+          "new_correct": 800
+        },
+        {
+          "trial": "C_nam_chu_dong_02",
+          "frames": 682,
+          "old_correct": 605,
+          "new_correct": 605
+        },
+        {
+          "trial": "C_nga_mo_phong_01",
+          "frames": 930,
+          "old_correct": 812,
+          "new_correct": 812
+        },
+        {
+          "trial": "C_nga_mo_phong_02",
+          "frames": 746,
+          "old_correct": 648,
+          "new_correct": 648
+        },
+        {
+          "trial": "C_ngoi_xom_01",
+          "frames": 360,
+          "old_correct": 256,
+          "new_correct": 256
+        },
+        {
+          "trial": "C_ngoi_xom_02",
+          "frames": 309,
+          "old_correct": 193,
+          "new_correct": 193
+        }
+      ]
+    },
+    "new": {
+      "common_three_groups": {
+        "frames": 25884,
+        "accuracy": 0.9359063514140009,
+        "macro_f1": 0.9317531296797551,
+        "per_class_recall": {
+          "STAND": 0.916246068319801,
+          "SIT_OR_BEND": 0.9329068497425496,
+          "LYING": 0.9855272226051
+        },
+        "confusion_matrix": [
+          [
+            12526,
+            1109,
+            36
+          ],
+          [
+            99,
+            5979,
+            331
+          ],
+          [
+            0,
+            84,
+            5720
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "old_common_three_groups": {
+        "frames": 25884,
+        "accuracy": 0.888309380312162,
+        "macro_f1": 0.87917128167358,
+        "per_class_recall": {
+          "STAND": 0.859776168531929,
+          "SIT_OR_BEND": 0.848026213137775,
+          "LYING": 1.0
+        },
+        "confusion_matrix": [
+          [
+            11754,
+            1831,
+            86
+          ],
+          [
+            47,
+            5435,
+            927
+          ],
+          [
+            0,
+            0,
+            5804
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "reference_counts": {
+        "BEND": 872,
+        "STAND": 13671,
+        "SIT": 5537,
+        "LYING": 5804
+      },
+      "by_trial": [
+        {
+          "trial": "A_cui_nhat_do_01",
+          "frames": 394,
+          "old_correct": 369,
+          "new_correct": 381
+        },
+        {
+          "trial": "A_cui_nhat_do_02",
+          "frames": 364,
+          "old_correct": 311,
+          "new_correct": 342
+        },
+        {
+          "trial": "A_dung_ngoi_01",
+          "frames": 426,
+          "old_correct": 348,
+          "new_correct": 420
+        },
+        {
+          "trial": "A_dung_ngoi_02",
+          "frames": 617,
+          "old_correct": 542,
+          "new_correct": 579
+        },
+        {
+          "trial": "A_dung_ngoi_nhanh_02",
+          "frames": 666,
+          "old_correct": 632,
+          "new_correct": 666
+        },
+        {
+          "trial": "A_dung_yen_01",
+          "frames": 530,
+          "old_correct": 492,
+          "new_correct": 505
+        },
+        {
+          "trial": "A_dung_yen_02",
+          "frames": 639,
+          "old_correct": 572,
+          "new_correct": 615
+        },
+        {
+          "trial": "A_nam_chu_dong_01",
+          "frames": 175,
+          "old_correct": 112,
+          "new_correct": 126
+        },
+        {
+          "trial": "A_nam_chu_dong_02",
+          "frames": 255,
+          "old_correct": 253,
+          "new_correct": 253
+        },
+        {
+          "trial": "A_nga_mo_phong_01",
+          "frames": 728,
+          "old_correct": 698,
+          "new_correct": 696
+        },
+        {
+          "trial": "A_nga_mo_phong_02",
+          "frames": 796,
+          "old_correct": 784,
+          "new_correct": 783
+        },
+        {
+          "trial": "A_ngoi_xom_01",
+          "frames": 232,
+          "old_correct": 213,
+          "new_correct": 223
+        },
+        {
+          "trial": "A_ngoi_xom_02",
+          "frames": 196,
+          "old_correct": 191,
+          "new_correct": 195
+        },
+        {
+          "trial": "B_cui_nhat_do_01",
+          "frames": 602,
+          "old_correct": 556,
+          "new_correct": 584
+        },
+        {
+          "trial": "B_cui_nhat_do_02",
+          "frames": 765,
+          "old_correct": 707,
+          "new_correct": 740
+        },
+        {
+          "trial": "B_dung_ngoi_01",
+          "frames": 589,
+          "old_correct": 578,
+          "new_correct": 586
+        },
+        {
+          "trial": "B_dung_ngoi_02",
+          "frames": 649,
+          "old_correct": 643,
+          "new_correct": 648
+        },
+        {
+          "trial": "B_dung_ngoi_nhanh_01",
+          "frames": 595,
+          "old_correct": 589,
+          "new_correct": 595
+        },
+        {
+          "trial": "B_dung_ngoi_nhanh_02",
+          "frames": 541,
+          "old_correct": 533,
+          "new_correct": 541
+        },
+        {
+          "trial": "B_dung_yen_01",
+          "frames": 444,
+          "old_correct": 405,
+          "new_correct": 430
+        },
+        {
+          "trial": "B_dung_yen_02",
+          "frames": 540,
+          "old_correct": 535,
+          "new_correct": 536
+        },
+        {
+          "trial": "B_nam_chu_dong_01",
+          "frames": 1221,
+          "old_correct": 1204,
+          "new_correct": 1196
+        },
+        {
+          "trial": "B_nam_chu_dong_02",
+          "frames": 1158,
+          "old_correct": 1147,
+          "new_correct": 1142
+        },
+        {
+          "trial": "B_nga_mo_phong_01",
+          "frames": 921,
+          "old_correct": 891,
+          "new_correct": 893
+        },
+        {
+          "trial": "B_nga_mo_phong_02",
+          "frames": 1254,
+          "old_correct": 1230,
+          "new_correct": 1221
+        },
+        {
+          "trial": "B_ngoi_xom_01",
+          "frames": 213,
+          "old_correct": 209,
+          "new_correct": 210
+        },
+        {
+          "trial": "B_ngoi_xom_02",
+          "frames": 337,
+          "old_correct": 318,
+          "new_correct": 321
+        },
+        {
+          "trial": "C_cui_nhat_do_01",
+          "frames": 492,
+          "old_correct": 433,
+          "new_correct": 461
+        },
+        {
+          "trial": "C_cui_nhat_do_02",
+          "frames": 676,
+          "old_correct": 605,
+          "new_correct": 637
+        },
+        {
+          "trial": "C_dung_ngoi_01",
+          "frames": 582,
+          "old_correct": 461,
+          "new_correct": 490
+        },
+        {
+          "trial": "C_dung_ngoi_02",
+          "frames": 1019,
+          "old_correct": 802,
+          "new_correct": 933
+        },
+        {
+          "trial": "C_dung_ngoi_nhanh_01",
+          "frames": 1059,
+          "old_correct": 838,
+          "new_correct": 1024
+        },
+        {
+          "trial": "C_dung_ngoi_nhanh_02",
+          "frames": 939,
+          "old_correct": 812,
+          "new_correct": 906
+        },
+        {
+          "trial": "C_dung_yen_01",
+          "frames": 540,
+          "old_correct": 321,
+          "new_correct": 385
+        },
+        {
+          "trial": "C_dung_yen_02",
+          "frames": 715,
+          "old_correct": 345,
+          "new_correct": 414
+        },
+        {
+          "trial": "C_nam_chu_dong_01",
+          "frames": 988,
+          "old_correct": 800,
+          "new_correct": 883
+        },
+        {
+          "trial": "C_nam_chu_dong_02",
+          "frames": 682,
+          "old_correct": 605,
+          "new_correct": 632
+        },
+        {
+          "trial": "C_nga_mo_phong_01",
+          "frames": 930,
+          "old_correct": 812,
+          "new_correct": 839
+        },
+        {
+          "trial": "C_nga_mo_phong_02",
+          "frames": 746,
+          "old_correct": 648,
+          "new_correct": 678
+        },
+        {
+          "trial": "C_ngoi_xom_01",
+          "frames": 360,
+          "old_correct": 256,
+          "new_correct": 301
+        },
+        {
+          "trial": "C_ngoi_xom_02",
+          "frames": 309,
+          "old_correct": 193,
+          "new_correct": 215
+        }
+      ],
+      "four_classes": {
+        "frames": 25884,
+        "accuracy": 0.9053082985628187,
+        "macro_f1": 0.783665503555666,
+        "per_class_recall": {
+          "STAND": 0.916246068319801,
+          "SIT": 0.8667148275239299,
+          "BEND": 0.44495412844036697,
+          "LYING": 0.9855272226051
+        },
+        "confusion_matrix": [
+          [
+            12526,
+            868,
+            241,
+            36
+          ],
+          [
+            9,
+            4799,
+            444,
+            285
+          ],
+          [
+            90,
+            348,
+            388,
+            46
+          ],
+          [
+            0,
+            54,
+            30,
+            5720
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT",
+          "BEND",
+          "LYING"
+        ]
+      }
+    }
+  },
+  "test": {
+    "old": {
+      "common_three_groups": {
+        "frames": 12356,
+        "accuracy": 0.8692133376497249,
+        "macro_f1": 0.8562016043221878,
+        "per_class_recall": {
+          "STAND": 0.8197630829209777,
+          "SIT_OR_BEND": 0.8405238828967643,
+          "LYING": 1.0
+        },
+        "confusion_matrix": [
+          [
+            5467,
+            1161,
+            41
+          ],
+          [
+            21,
+            2182,
+            393
+          ],
+          [
+            0,
+            0,
+            3091
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "old_common_three_groups": {
+        "frames": 12356,
+        "accuracy": 0.8692133376497249,
+        "macro_f1": 0.8562016043221878,
+        "per_class_recall": {
+          "STAND": 0.8197630829209777,
+          "SIT_OR_BEND": 0.8405238828967643,
+          "LYING": 1.0
+        },
+        "confusion_matrix": [
+          [
+            5467,
+            1161,
+            41
+          ],
+          [
+            21,
+            2182,
+            393
+          ],
+          [
+            0,
+            0,
+            3091
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "reference_counts": {
+        "STAND": 6669,
+        "BEND": 474,
+        "SIT": 2122,
+        "LYING": 3091
+      },
+      "by_trial": [
+        {
+          "trial": "A_cui_nhat_do_03",
+          "frames": 604,
+          "old_correct": 521,
+          "new_correct": 521
+        },
+        {
+          "trial": "A_dung_ngoi_03",
+          "frames": 541,
+          "old_correct": 534,
+          "new_correct": 534
+        },
+        {
+          "trial": "A_dung_ngoi_nhanh_03",
+          "frames": 541,
+          "old_correct": 488,
+          "new_correct": 488
+        },
+        {
+          "trial": "A_dung_yen_03",
+          "frames": 526,
+          "old_correct": 515,
+          "new_correct": 515
+        },
+        {
+          "trial": "A_nam_chu_dong_03",
+          "frames": 779,
+          "old_correct": 703,
+          "new_correct": 703
+        },
+        {
+          "trial": "A_nga_mo_phong_03",
+          "frames": 1034,
+          "old_correct": 993,
+          "new_correct": 993
+        },
+        {
+          "trial": "A_ngoi_xom_03",
+          "frames": 362,
+          "old_correct": 203,
+          "new_correct": 203
+        },
+        {
+          "trial": "B_cui_nhat_do_03",
+          "frames": 403,
+          "old_correct": 366,
+          "new_correct": 366
+        },
+        {
+          "trial": "B_dung_ngoi_03",
+          "frames": 655,
+          "old_correct": 623,
+          "new_correct": 623
+        },
+        {
+          "trial": "B_dung_ngoi_nhanh_03",
+          "frames": 430,
+          "old_correct": 420,
+          "new_correct": 420
+        },
+        {
+          "trial": "B_dung_yen_03",
+          "frames": 535,
+          "old_correct": 497,
+          "new_correct": 497
+        },
+        {
+          "trial": "B_nam_chu_dong_03",
+          "frames": 696,
+          "old_correct": 692,
+          "new_correct": 692
+        },
+        {
+          "trial": "B_nga_mo_phong_03",
+          "frames": 800,
+          "old_correct": 709,
+          "new_correct": 709
+        },
+        {
+          "trial": "B_ngoi_xom_03",
+          "frames": 350,
+          "old_correct": 292,
+          "new_correct": 292
+        },
+        {
+          "trial": "C_cui_nhat_do_03",
+          "frames": 383,
+          "old_correct": 299,
+          "new_correct": 299
+        },
+        {
+          "trial": "C_dung_ngoi_03",
+          "frames": 780,
+          "old_correct": 568,
+          "new_correct": 568
+        },
+        {
+          "trial": "C_dung_ngoi_nhanh_03",
+          "frames": 526,
+          "old_correct": 446,
+          "new_correct": 446
+        },
+        {
+          "trial": "C_dung_yen_03",
+          "frames": 489,
+          "old_correct": 336,
+          "new_correct": 336
+        },
+        {
+          "trial": "C_nam_chu_dong_03",
+          "frames": 766,
+          "old_correct": 607,
+          "new_correct": 607
+        },
+        {
+          "trial": "C_nga_mo_phong_03",
+          "frames": 942,
+          "old_correct": 747,
+          "new_correct": 747
+        },
+        {
+          "trial": "C_ngoi_xom_03",
+          "frames": 214,
+          "old_correct": 181,
+          "new_correct": 181
+        }
+      ]
+    },
+    "height_only": {
+      "common_three_groups": {
+        "frames": 12356,
+        "accuracy": 0.9184202007122046,
+        "macro_f1": 0.9092917474341143,
+        "per_class_recall": {
+          "STAND": 0.891288049182786,
+          "SIT_OR_BEND": 0.9171802773497689,
+          "LYING": 0.978000647039793
+        },
+        "confusion_matrix": [
+          [
+            5944,
+            710,
+            15
+          ],
+          [
+            63,
+            2381,
+            152
+          ],
+          [
+            0,
+            68,
+            3023
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "old_common_three_groups": {
+        "frames": 12356,
+        "accuracy": 0.8692133376497249,
+        "macro_f1": 0.8562016043221878,
+        "per_class_recall": {
+          "STAND": 0.8197630829209777,
+          "SIT_OR_BEND": 0.8405238828967643,
+          "LYING": 1.0
+        },
+        "confusion_matrix": [
+          [
+            5467,
+            1161,
+            41
+          ],
+          [
+            21,
+            2182,
+            393
+          ],
+          [
+            0,
+            0,
+            3091
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "reference_counts": {
+        "STAND": 6669,
+        "BEND": 474,
+        "SIT": 2122,
+        "LYING": 3091
+      },
+      "by_trial": [
+        {
+          "trial": "A_cui_nhat_do_03",
+          "frames": 604,
+          "old_correct": 521,
+          "new_correct": 561
+        },
+        {
+          "trial": "A_dung_ngoi_03",
+          "frames": 541,
+          "old_correct": 534,
+          "new_correct": 541
+        },
+        {
+          "trial": "A_dung_ngoi_nhanh_03",
+          "frames": 541,
+          "old_correct": 488,
+          "new_correct": 536
+        },
+        {
+          "trial": "A_dung_yen_03",
+          "frames": 526,
+          "old_correct": 515,
+          "new_correct": 518
+        },
+        {
+          "trial": "A_nam_chu_dong_03",
+          "frames": 779,
+          "old_correct": 703,
+          "new_correct": 686
+        },
+        {
+          "trial": "A_nga_mo_phong_03",
+          "frames": 1034,
+          "old_correct": 993,
+          "new_correct": 997
+        },
+        {
+          "trial": "A_ngoi_xom_03",
+          "frames": 362,
+          "old_correct": 203,
+          "new_correct": 207
+        },
+        {
+          "trial": "B_cui_nhat_do_03",
+          "frames": 403,
+          "old_correct": 366,
+          "new_correct": 370
+        },
+        {
+          "trial": "B_dung_ngoi_03",
+          "frames": 655,
+          "old_correct": 623,
+          "new_correct": 653
+        },
+        {
+          "trial": "B_dung_ngoi_nhanh_03",
+          "frames": 430,
+          "old_correct": 420,
+          "new_correct": 430
+        },
+        {
+          "trial": "B_dung_yen_03",
+          "frames": 535,
+          "old_correct": 497,
+          "new_correct": 519
+        },
+        {
+          "trial": "B_nam_chu_dong_03",
+          "frames": 696,
+          "old_correct": 692,
+          "new_correct": 688
+        },
+        {
+          "trial": "B_nga_mo_phong_03",
+          "frames": 800,
+          "old_correct": 709,
+          "new_correct": 740
+        },
+        {
+          "trial": "B_ngoi_xom_03",
+          "frames": 350,
+          "old_correct": 292,
+          "new_correct": 293
+        },
+        {
+          "trial": "C_cui_nhat_do_03",
+          "frames": 383,
+          "old_correct": 299,
+          "new_correct": 326
+        },
+        {
+          "trial": "C_dung_ngoi_03",
+          "frames": 780,
+          "old_correct": 568,
+          "new_correct": 735
+        },
+        {
+          "trial": "C_dung_ngoi_nhanh_03",
+          "frames": 526,
+          "old_correct": 446,
+          "new_correct": 492
+        },
+        {
+          "trial": "C_dung_yen_03",
+          "frames": 489,
+          "old_correct": 336,
+          "new_correct": 375
+        },
+        {
+          "trial": "C_nam_chu_dong_03",
+          "frames": 766,
+          "old_correct": 607,
+          "new_correct": 685
+        },
+        {
+          "trial": "C_nga_mo_phong_03",
+          "frames": 942,
+          "old_correct": 747,
+          "new_correct": 812
+        },
+        {
+          "trial": "C_ngoi_xom_03",
+          "frames": 214,
+          "old_correct": 181,
+          "new_correct": 184
+        }
+      ]
+    },
+    "new": {
+      "common_three_groups": {
+        "frames": 12356,
+        "accuracy": 0.9184202007122046,
+        "macro_f1": 0.9092917474341143,
+        "per_class_recall": {
+          "STAND": 0.891288049182786,
+          "SIT_OR_BEND": 0.9171802773497689,
+          "LYING": 0.978000647039793
+        },
+        "confusion_matrix": [
+          [
+            5944,
+            710,
+            15
+          ],
+          [
+            63,
+            2381,
+            152
+          ],
+          [
+            0,
+            68,
+            3023
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "old_common_three_groups": {
+        "frames": 12356,
+        "accuracy": 0.8692133376497249,
+        "macro_f1": 0.8562016043221878,
+        "per_class_recall": {
+          "STAND": 0.8197630829209777,
+          "SIT_OR_BEND": 0.8405238828967643,
+          "LYING": 1.0
+        },
+        "confusion_matrix": [
+          [
+            5467,
+            1161,
+            41
+          ],
+          [
+            21,
+            2182,
+            393
+          ],
+          [
+            0,
+            0,
+            3091
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT_OR_BEND",
+          "LYING"
+        ]
+      },
+      "reference_counts": {
+        "STAND": 6669,
+        "BEND": 474,
+        "SIT": 2122,
+        "LYING": 3091
+      },
+      "by_trial": [
+        {
+          "trial": "A_cui_nhat_do_03",
+          "frames": 604,
+          "old_correct": 521,
+          "new_correct": 561
+        },
+        {
+          "trial": "A_dung_ngoi_03",
+          "frames": 541,
+          "old_correct": 534,
+          "new_correct": 541
+        },
+        {
+          "trial": "A_dung_ngoi_nhanh_03",
+          "frames": 541,
+          "old_correct": 488,
+          "new_correct": 536
+        },
+        {
+          "trial": "A_dung_yen_03",
+          "frames": 526,
+          "old_correct": 515,
+          "new_correct": 518
+        },
+        {
+          "trial": "A_nam_chu_dong_03",
+          "frames": 779,
+          "old_correct": 703,
+          "new_correct": 686
+        },
+        {
+          "trial": "A_nga_mo_phong_03",
+          "frames": 1034,
+          "old_correct": 993,
+          "new_correct": 997
+        },
+        {
+          "trial": "A_ngoi_xom_03",
+          "frames": 362,
+          "old_correct": 203,
+          "new_correct": 207
+        },
+        {
+          "trial": "B_cui_nhat_do_03",
+          "frames": 403,
+          "old_correct": 366,
+          "new_correct": 370
+        },
+        {
+          "trial": "B_dung_ngoi_03",
+          "frames": 655,
+          "old_correct": 623,
+          "new_correct": 653
+        },
+        {
+          "trial": "B_dung_ngoi_nhanh_03",
+          "frames": 430,
+          "old_correct": 420,
+          "new_correct": 430
+        },
+        {
+          "trial": "B_dung_yen_03",
+          "frames": 535,
+          "old_correct": 497,
+          "new_correct": 519
+        },
+        {
+          "trial": "B_nam_chu_dong_03",
+          "frames": 696,
+          "old_correct": 692,
+          "new_correct": 688
+        },
+        {
+          "trial": "B_nga_mo_phong_03",
+          "frames": 800,
+          "old_correct": 709,
+          "new_correct": 740
+        },
+        {
+          "trial": "B_ngoi_xom_03",
+          "frames": 350,
+          "old_correct": 292,
+          "new_correct": 293
+        },
+        {
+          "trial": "C_cui_nhat_do_03",
+          "frames": 383,
+          "old_correct": 299,
+          "new_correct": 326
+        },
+        {
+          "trial": "C_dung_ngoi_03",
+          "frames": 780,
+          "old_correct": 568,
+          "new_correct": 735
+        },
+        {
+          "trial": "C_dung_ngoi_nhanh_03",
+          "frames": 526,
+          "old_correct": 446,
+          "new_correct": 492
+        },
+        {
+          "trial": "C_dung_yen_03",
+          "frames": 489,
+          "old_correct": 336,
+          "new_correct": 375
+        },
+        {
+          "trial": "C_nam_chu_dong_03",
+          "frames": 766,
+          "old_correct": 607,
+          "new_correct": 685
+        },
+        {
+          "trial": "C_nga_mo_phong_03",
+          "frames": 942,
+          "old_correct": 747,
+          "new_correct": 812
+        },
+        {
+          "trial": "C_ngoi_xom_03",
+          "frames": 214,
+          "old_correct": 181,
+          "new_correct": 184
+        }
+      ],
+      "four_classes": {
+        "frames": 12356,
+        "accuracy": 0.8859663321463257,
+        "macro_f1": 0.744607505877807,
+        "per_class_recall": {
+          "STAND": 0.891288049182786,
+          "SIT": 0.8595664467483506,
+          "BEND": 0.3291139240506329,
+          "LYING": 0.978000647039793
+        },
+        "confusion_matrix": [
+          [
+            5944,
+            573,
+            137,
+            15
+          ],
+          [
+            5,
+            1824,
+            214,
+            79
+          ],
+          [
+            58,
+            187,
+            156,
+            73
+          ],
+          [
+            0,
+            41,
+            27,
+            3023
+          ]
+        ],
+        "classes": [
+          "STAND",
+          "SIT",
+          "BEND",
+          "LYING"
+        ]
+      }
+    }
+  },
+  "h_mount_m": 1.7,
+  "fall_model_and_8s_alarm_unchanged": true,
+  "evaluated_reference_labels": {
+    "STAND": "STAND",
+    "SIT": "SIT",
+    "BEND": "BEND",
+    "LYING": "LYING",
+    "LYING_POST_FALL": "LYING"
+  },
+  "limits": [
+    "Semi-automatic labels derived from radar, not independent ground truth.",
+    "Frames correlate strongly; trial-level evidence is also saved.",
+    "The old UI only has 3 groups. Four-class accuracy is not attributed to it.",
+    "A causal BEND prediction during lowering is provisional, not confirmation using future recovery.",
+    "Transitions, WALK, SQUAT and FALL are not forced into these four reference labels.",
+    "Repeat 03 has been inspected in earlier experiments; not a fresh blind test.",
+    "Height search has declared bounds low 0..0.8m, high 0.5..1.6m; not universal thresholds."
+  ]
+}

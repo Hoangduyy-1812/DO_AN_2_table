@@ -19,8 +19,11 @@ if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
     except Exception:
         pass
 
-from protocol import COUNTERS, decode_frame, validate_record
-from live_fall_fsm import OnlineFallDetectorFSM
+from fall_window import FEATURE_SETS, feature_set_from_bundle
+from configured_fsm import load_settings
+from height_sync import HeightSync, apply_height
+from posture_fsm import PostureFSM, old_posture, height_posture
+from live_fall_fsm import MAX_BACKLOG_MS, MultiTargetFallDetector
 from mqtt_publisher import MqttPublisher
 import receiver
 
@@ -28,9 +31,16 @@ import receiver
 subscribers: list[queue.Queue] = []
 subscribers_lock = threading.Lock()
 detector_lock = threading.Lock()
-global_detector = OnlineFallDetectorFSM(h_mount_mm=1700.0, v_thresh=0.78, hold_s=8.0)
+global_detector = MultiTargetFallDetector(h_mount_mm=1700.0, v_thresh=0.78, hold_s=8.0)
+ml_model_name = None
+runtime_config = {'h_mount_m': 1.7, 'calibration_h_mount_m': 1.7,
+                  'height_source': 'config', 'height_sync_status': 'manual'}
+posture_mode = 'old'
+posture_config = None
+posture_detectors = {}
 alarm_history: list[dict] = []
 tcp_connected = False
+last_detector_source = None
 last_frame_info = {
     't_s': 0.0, 'slot': None, 'x_mm': 0.0, 'y_mm': 0.0, 'z_est_m': 1.7,
     'v_mps': 0.0, 'state': 'MONITORING', 'hold_time_s': 0.0, 'note': 'Chờ kết nối ESP32...'
@@ -219,10 +229,11 @@ HTML_PAGE = """<!DOCTYPE html>
       </div>
       <div>
         <h1>HỆ THỐNG PHÁT HIỆN TÉ NGÃ mmWAVE RADAR 24GHz</h1>
-        <div class="subtitle">Đồ án Chuyên ngành 2 & Luận văn Tốt nghiệp - Cảm biến HLK-LD2450 & ESP32-S3</div>
+        <div class="subtitle">Đồ án Chuyên ngành 2 & Luận văn Tốt nghiệp - Cảm biến HLK-LD2450 & ESP32</div>
       </div>
     </div>
     <div class="header-badges">
+      <div id="detector-mode" class="badge">Bộ phát hiện</div>
       <div id="conn-badge" class="badge badge-offline">
         <div class="pulse-dot"></div>
         <span id="conn-text">ESP32: Đang chờ TCP...</span>
@@ -239,8 +250,8 @@ HTML_PAGE = """<!DOCTYPE html>
     <!-- State Banner -->
     <div id="status-banner" class="banner-monitoring">
       <div>
-        <div class="banner-title" id="banner-title">🟢 HỆ THỐNG ĐANG GIÁM SÁT AN TOÀN (MONITORING)</div>
-        <div class="banner-desc" id="banner-desc">Radar quét chùm sóng góc 120°, tư thế người dùng ở trạng thái bình thường.</div>
+        <div class="banner-title" id="banner-title">ĐANG CHỜ DỮ LIỆU</div>
+        <div class="banner-desc" id="banner-desc">Đang chờ dữ liệu từ ESP32.</div>
         <div id="countdown-wrap" style="display: none;">
           <div class="progress-bar-container">
             <div id="progress-bar" class="progress-bar"></div>
@@ -257,26 +268,26 @@ HTML_PAGE = """<!DOCTYPE html>
     <div class="kpi-grid">
       <div class="card">
         <div class="card-label">Chiều cao ước lượng Z_est</div>
-        <div class="card-val mono" id="val-z" style="color: #38bdf8;">1.70<span style="font-size: 1.2rem; font-weight: 500;"> m</span></div>
-        <div class="card-sub" id="posture-tag"><span class="badge badge-online">ĐỨNG THẲNG (>1.0m)</span></div>
+        <div class="card-val mono" id="val-z" style="color: #38bdf8;">—</div>
+        <div class="card-sub" id="posture-tag">Chưa có dữ liệu</div>
       </div>
 
       <div class="card">
         <div class="card-label">Vận tốc tức thời (Doppler)</div>
-        <div class="card-val mono" id="val-v" style="color: #fbbf24;">0.00<span style="font-size: 1.2rem; font-weight: 500;"> m/s</span></div>
+        <div class="card-val mono" id="val-v" style="color: #fbbf24;">—</div>
         <div class="card-sub mono" id="peak-v-sub">Đỉnh rơi lớn nhất: 0.00 m/s</div>
       </div>
 
       <div class="card">
         <div class="card-label">Tọa độ Radar 2D (X, Y)</div>
-        <div class="card-val mono" id="val-xy" style="font-size: 1.6rem; margin-top: 4px;">X: 0 | Y: 0</div>
-        <div class="card-sub mono" id="sub-dist">Cự ly cách radar: 0.00 m</div>
+        <div class="card-val mono" id="val-xy" style="font-size: 1.6rem; margin-top: 4px;">—</div>
+        <div class="card-sub mono" id="sub-dist">Cự ly: —</div>
       </div>
 
       <div class="card">
         <div class="card-label">Mục tiêu Radar bám</div>
-        <div class="card-val mono" id="val-slot" style="color: #a78bfa;">SLOT 1</div>
-        <div class="card-sub mono" id="val-frame-info">Frame: #0 | Backlog: 0ms</div>
+        <div class="card-val mono" id="val-slot" style="color: #a78bfa;">—</div>
+        <div class="card-sub mono" id="val-frame-info">Đang chờ khung radar</div>
       </div>
     </div>
 
@@ -289,6 +300,7 @@ HTML_PAGE = """<!DOCTYPE html>
           <div class="mono" style="font-size: 0.75rem; color: var(--text-muted);">Vùng quan tâm (ROI): Y ≤ 3.2m</div>
         </div>
         <canvas id="radarCanvas" width="600" height="340"></canvas>
+        <div id="radar-target-states" class="mono" style="white-space: pre-line; font-size: 0.8rem; margin-top: 10px;"></div>
       </div>
 
       <!-- Real-time Height & Velocity Charts -->
@@ -372,6 +384,7 @@ HTML_PAGE = """<!DOCTYPE html>
     const historyData = [];
     const maxHistoryPoints = 180; // 18 seconds at 10Hz
     let currentTrail = [];
+    let primarySlot = null;
 
     // Radar Canvas
     const radarCanvas = document.getElementById('radarCanvas');
@@ -381,7 +394,7 @@ HTML_PAGE = """<!DOCTYPE html>
     const timelineCanvas = document.getElementById('timelineCanvas');
     const tCtx = timelineCanvas.getContext('2d');
 
-    function renderRadar(curX, curY, curZ, state) {
+    function renderRadar(targets, statesBySlot, trackedSlot, delayed) {
       const w = radarCanvas.width;
       const h = radarCanvas.height;
       rCtx.clearRect(0, 0, w, h);
@@ -432,52 +445,43 @@ HTML_PAGE = """<!DOCTYPE html>
       rCtx.fillStyle = '#94a3b8';
       rCtx.fillText('LD2450 (1.7m)', originX - 35, originY - 12);
 
-      // Draw Person Position if valid
-      if (curY > 0) {
-        // Lateral offset in vertical mounting: note LD2450 X is vertical, but we project 2D range
-        // For visual plotting in room: map X (-500 to +500) and Y (distance)
-        const personPx = originX; // central lane projection
-        const personPy = originY + (curY / 1000.0) * scale;
-
-        // Trail
-        currentTrail.push({x: personPx, y: personPy});
+      const tracked = targets.find(target => target.slot === trackedSlot && target.y_mm > 0);
+      if (tracked) {
+        const trackX = originX + (trackedSlot - 2) * 16;
+        currentTrail.push(originY + Math.min(tracked.y_mm / 1000, 3.8) * scale);
         if (currentTrail.length > 25) currentTrail.shift();
         rCtx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
         rCtx.lineWidth = 3;
         rCtx.beginPath();
-        for (let i = 0; i < currentTrail.length; i++) {
-          if (i === 0) rCtx.moveTo(currentTrail[i].x, currentTrail[i].y);
-          else rCtx.lineTo(currentTrail[i].x, currentTrail[i].y);
-        }
+        currentTrail.forEach((y, index) => {
+          if (index === 0) rCtx.moveTo(trackX, y);
+          else rCtx.lineTo(trackX, y);
+        });
         rCtx.stroke();
+      } else {
+        currentTrail = [];
+      }
 
-        // Person Marker
-        let markerColor = '#10b981';
-        let glowColor = 'rgba(16, 185, 129, 0.6)';
-        if (state === 'SUSPECTED_FALL') {
-          markerColor = '#f59e0b';
-          glowColor = 'rgba(245, 158, 11, 0.8)';
-        } else if (state === 'ALARM_TRIGGERED') {
-          markerColor = '#ef4444';
-          glowColor = 'rgba(239, 68, 68, 0.9)';
-        }
-
-        // Glow ring
-        rCtx.fillStyle = glowColor;
+      for (const target of targets) {
+        if (target.y_mm <= 0) continue;
+        // The map projects Y only. Offset the slots visually so dots at the same depth stay visible.
+        const depth = target.y_mm / 1000;
+        const x = originX + (target.slot - 2) * 16;
+        const y = originY + Math.min(depth, 3.8) * scale;
+        const state = statesBySlot.get(target.slot)?.state;
+        rCtx.fillStyle = delayed ? '#fbbf24' :
+          state === 'ALARM_TRIGGERED' ? '#ef4444' :
+          state === 'SUSPECTED_FALL' ? '#f59e0b' : '#10b981';
         rCtx.beginPath();
-        rCtx.arc(personPx, personPy, 14, 0, Math.PI * 2);
+        rCtx.arc(x, y, 7, 0, Math.PI * 2);
         rCtx.fill();
-
-        // Core dot
-        rCtx.fillStyle = markerColor;
-        rCtx.beginPath();
-        rCtx.arc(personPx, personPy, 7, 0, Math.PI * 2);
-        rCtx.fill();
-
-        // Label
         rCtx.font = 'bold 11px JetBrains Mono';
-        rCtx.fillStyle = '#ffffff';
-        rCtx.fillText(`Z: ${curZ.toFixed(2)}m`, personPx + 16, personPy + 4);
+        const label = `S${target.slot} · Y ${depth.toFixed(2)}m` + (delayed ? ' · trễ' : '');
+        if (target.slot === 2) {
+          rCtx.fillText(label, x - 12 - rCtx.measureText(label).width, y + 4);
+        } else {
+          rCtx.fillText(label, x + 12, y + (target.slot === 3 ? 17 : 4));
+        }
       }
     }
 
@@ -522,46 +526,55 @@ HTML_PAGE = """<!DOCTYPE html>
       tCtx.fillStyle = 'rgba(239, 68, 68, 0.7)';
       tCtx.fillText('Ngưỡng sàn (0.40m)', w - 125, floorY - 6);
 
-      // Plot Z(t) - Blue Line
-      tCtx.strokeStyle = '#38bdf8';
-      tCtx.lineWidth = 2.5;
-      tCtx.beginPath();
-      for (let i = 0; i < historyData.length; i++) {
-        const pt = historyData[i];
-        const x = paddingLeft + (i / (maxHistoryPoints - 1)) * graphW;
-        const zClamped = Math.max(0, Math.min(maxZ, pt.z));
-        const y = h - paddingBottom - (zClamped / maxZ) * graphH;
-        if (i === 0) tCtx.moveTo(x, y);
-        else tCtx.lineTo(x, y);
+      function plot(field, color, width) {
+        tCtx.strokeStyle = color;
+        tCtx.lineWidth = width;
+        tCtx.beginPath();
+        let hasPrevious = false;
+        historyData.forEach((point, index) => {
+          if (point === null) {
+            hasPrevious = false;
+            return;
+          }
+          const x = paddingLeft + (index / (maxHistoryPoints - 1)) * graphW;
+          const value = Math.max(0, Math.min(maxZ, point[field]));
+          const y = h - paddingBottom - (value / maxZ) * graphH;
+          if (hasPrevious) tCtx.lineTo(x, y);
+          else tCtx.moveTo(x, y);
+          hasPrevious = true;
+        });
+        tCtx.stroke();
       }
-      tCtx.stroke();
 
-      // Plot V(t) - Yellow Line
-      tCtx.strokeStyle = '#fbbf24';
-      tCtx.lineWidth = 1.8;
-      tCtx.beginPath();
-      for (let i = 0; i < historyData.length; i++) {
-        const pt = historyData[i];
-        const x = paddingLeft + (i / (maxHistoryPoints - 1)) * graphW;
-        const vClamped = Math.max(0, Math.min(maxZ, pt.v));
-        const y = h - paddingBottom - (vClamped / maxZ) * graphH;
-        if (i === 0) tCtx.moveTo(x, y);
-        else tCtx.lineTo(x, y);
-      }
-      tCtx.stroke();
+      plot('z', '#38bdf8', 2.5);
+      plot('v', '#fbbf24', 1.8);
     }
 
     // Connect to Server-Sent Events (SSE)
     const evtSource = new EventSource('/events');
+    let pendingUpdate = null;
+    let pendingAlarm = false;
+    let receivedAlarmCount = null;
+    let renderScheduled = false;
 
     evtSource.onmessage = function(e) {
-      const data = JSON.parse(e.data);
-      updateUI(data);
+      pendingUpdate = JSON.parse(e.data);
+      const alarmCount = pendingUpdate.alarms?.length ?? 0;
+      pendingAlarm ||= receivedAlarmCount !== null && alarmCount > receivedAlarmCount;
+      receivedAlarmCount = alarmCount;
+      if (renderScheduled) return;
+      renderScheduled = true;
+      requestAnimationFrame(() => {
+        renderScheduled = false;
+        updateUI(pendingUpdate, pendingAlarm);
+        pendingUpdate = null;
+        pendingAlarm = false;
+      });
     };
 
     let prevAlarmCount = 0;
 
-    function updateUI(data) {
+    function updateUI(data, newAlarm = false) {
       // Connection badge
       const badge = document.getElementById('conn-badge');
       const connText = document.getElementById('conn-text');
@@ -573,25 +586,72 @@ HTML_PAGE = """<!DOCTYPE html>
         connText.innerText = 'ESP32: ĐANG CHỜ KẾT NỐI...';
       }
 
+      const mlMode = data.detector_mode === 'ML_2S_FSM';
+      const modelName = data.model_name || 'Random Forest';
+      document.getElementById('detector-mode').innerText = mlMode ?
+        modelName + ' 2 giây + FSM' : 'FSM theo ngưỡng';
+      if (data.runtime_config) {
+        const cfg = data.runtime_config;
+        let status = ' · H=' + cfg.h_mount_m.toFixed(2) + 'm';
+        if (cfg.height_sync_status === 'error' || cfg.height_sync_status === 'waiting')
+          status += ' · Chưa đồng bộ chiều cao ESP32';
+        if (Math.abs(cfg.h_mount_m - cfg.calibration_h_mount_m) > 0.001)
+          status += ' · Chưa kiểm chứng ngưỡng ở độ cao này';
+        document.getElementById('detector-mode').innerText += status;
+      }
+
       // Time
       document.getElementById('current-time-text').innerText = `${data.t_s.toFixed(1)}s`;
 
-      // Cards
-      document.getElementById('val-z').innerHTML = `${data.z_est_m.toFixed(2)}<span style="font-size: 1.2rem; font-weight: 500;"> m</span>`;
-      document.getElementById('val-v').innerHTML = `${data.v_mps.toFixed(2)}<span style="font-size: 1.2rem; font-weight: 500;"> m/s</span>`;
-      document.getElementById('val-xy').innerText = `X: ${Math.round(data.x_mm)} | Y: ${Math.round(data.y_mm)}`;
+      const targets = data.raw_targets || [];
+      const delayed = data.note === 'BACKLOG_EXCEEDED' || data.note === 'PC_ANALYSIS_DELAY';
+      const statesBySlot = new Map((data.target_states || []).map(target => [target.slot, target]));
+      const stateLabels = {
+        MONITORING: 'Giám sát', SUSPECTED_FALL: 'Nghi ngã', ALARM_TRIGGERED: 'Cảnh báo ngã',
+      };
+      document.getElementById('radar-target-states').innerText = targets.map(target => {
+        const track = statesBySlot.get(target.slot);
+        const location = `S${target.slot} · Y ${(target.y_mm / 1000).toFixed(2)} m`;
+        if (!track) return location + ' · Khung đến trễ';
+        const scoreLabel = modelName.startsWith('SVM RBF') ? 'Điểm SVM' : 'Điểm AI';
+        const score = mlMode ? (track.ml_score == null ? ' · Đang gom khung' :
+          ` · ${scoreLabel} ${track.ml_score.toFixed(2)}`) : '';
+        return `${location} · Z ${track.z_est_m.toFixed(2)} m · ${stateLabels[track.state]}${score}`;
+      }).join('\\n');
+      const hasTrack = data.slot != null;
+      const hasFrame = Number.isFinite(data.backlog_ms);
+      const timing = `Hàng đợi ESP32: ${Math.round(data.backlog_ms)} ms` +
+        (Number.isFinite(data.pc_wait_ms) ? ` · Chờ trên PC: ${Math.round(data.pc_wait_ms)} ms` : '');
+      const frameNote = delayed ? timing + ' · Tạm dừng phân tích' :
+        hasTrack ? timing :
+        hasFrame ? 'Radar chưa thấy mục tiêu' :
+        'Đang chờ khung radar';
 
-      const dist = Math.sqrt(data.x_mm**2 + data.y_mm**2) / 1000.0;
-      document.getElementById('sub-dist').innerText = `Cự ly cách radar: ${dist.toFixed(2)} m`;
-      document.getElementById('val-slot').innerText = data.slot ? `SLOT ${data.slot}` : 'KHÔNG CÓ';
-      document.getElementById('val-frame-info').innerText = `Note: ${data.note || 'OK'}`;
+      document.getElementById('val-z').innerText = hasTrack ? `${data.z_est_m.toFixed(2)} m` : '—';
+      document.getElementById('val-v').innerText = hasTrack ? `${data.v_mps.toFixed(2)} m/s` : '—';
+      document.getElementById('val-xy').innerText = hasTrack ?
+        `S${data.slot} · X: ${Math.round(data.x_mm)} | Y: ${Math.round(data.y_mm)}` : '—';
 
-      // Posture Badge
+      const dist = Math.hypot(data.x_mm, data.y_mm) / 1000.0;
+      document.getElementById('sub-dist').innerText = hasTrack ?
+        `Cự ly cách radar: ${dist.toFixed(2)} m` : 'Cự ly: —';
+      document.getElementById('val-slot').innerText = targets.length ?
+        `${targets.length} MỤC TIÊU` : hasFrame ? 'KHÔNG CÓ' : '—';
+      document.getElementById('val-frame-info').innerText = frameNote;
+
       const posture = document.getElementById('posture-tag');
-      if (data.z_est_m >= 1.0) {
-        posture.innerHTML = '<span class="badge badge-online">ĐỨNG THẲNG (>1.0m)</span>';
-      } else if (data.z_est_m >= 0.50) {
-        posture.innerHTML = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3);">NGỒI / CÚI (~0.6-0.9m)</span>';
+      const postureNames = {
+        STAND: 'ĐỨNG', SIT: 'NGỒI', SIT_OR_BEND: 'NGỒI / CÚI',
+        BEND: 'NGHI CÚI (đang theo dõi)', LYING: 'Ở THẤP / NẰM',
+      };
+      if (!hasTrack) {
+        posture.innerText = 'Chưa có tư thế hợp lệ';
+      } else if (data.posture_mode !== 'old' && data.posture_label) {
+        posture.innerText = postureNames[data.posture_label] || 'Chưa rõ tư thế';
+      } else if (data.z_est_m >= 1.0) {
+        posture.innerHTML = '<span class="badge badge-online">ĐỨNG THẲNG (≥1.0m)</span>';
+      } else if (data.z_est_m >= 0.48) {
+        posture.innerHTML = '<span class="badge">NGỒI / CÚI (0.48–1.0m)</span>';
       } else {
         posture.innerHTML = '<span class="badge badge-offline">SÁT SÀN NHÀ (<0.48m)</span>';
       }
@@ -603,34 +663,48 @@ HTML_PAGE = """<!DOCTYPE html>
       const cWrap = document.getElementById('countdown-wrap');
       const pBar = document.getElementById('progress-bar');
 
-      if (data.state === 'MONITORING') {
+      if (!hasTrack) {
         banner.className = 'banner-monitoring';
-        bTitle.innerText = '🟢 HỆ THỐNG ĐANG GIÁM SÁT AN TOÀN (MONITORING)';
-        bDesc.innerText = 'Radar quét chùm sóng góc 120°, tư thế người dùng ở trạng thái bình thường.';
+        bTitle.innerText = delayed ? 'DỮ LIỆU RADAR ĐẾN TRỄ' : 'ĐANG CHỜ MỤC TIÊU HỢP LỆ';
+        bDesc.innerText = frameNote;
+        cWrap.style.display = 'none';
+      } else if (data.state === 'MONITORING') {
+        banner.className = 'banner-monitoring';
+        bTitle.innerText = '🟢 HỆ THỐNG ĐANG GIÁM SÁT (MONITORING)';
+        bDesc.innerText = `Đang giám sát ${statesBySlot.size} mục tiêu. Đồ thị đang hiển thị S${data.slot}.`;
         cWrap.style.display = 'none';
       } else if (data.state === 'SUSPECTED_FALL') {
         banner.className = 'banner-suspected';
-        bTitle.innerText = `🟡 NGHI VẤN TÉ NGÃ - ĐANG XÁC MINH NẰM SÀN (${data.hold_time_s.toFixed(1)}s / 8.0s)`;
-        bDesc.innerText = 'Phát hiện rơi nhanh đột ngột! FSM đang đếm thời gian bất động sát sàn...';
+        bTitle.innerText = `🟡 S${data.slot} NGHI NGÃ - ĐANG XÁC MINH NẰM SÀN (${data.hold_time_s.toFixed(1)}s / 8.0s)`;
+        bDesc.innerText = mlMode ? 'Mô hình nghi ngã. FSM đang xác nhận mục tiêu tiếp tục ở sát sàn.' : 'Phát hiện hạ thấp nhanh. FSM đang xác nhận mục tiêu tiếp tục ở sát sàn.';
         cWrap.style.display = 'block';
         const pct = Math.min(100, (data.hold_time_s / 8.0) * 100);
         pBar.style.width = `${pct}%`;
         playBeep(440, 0.08); // warning ping
       } else if (data.state === 'ALARM_TRIGGERED') {
         banner.className = 'banner-alarm';
-        bTitle.innerText = '🚨 CẢNH BÁO: PHÁT HIỆN TÉ NGÃ KHẨN CẤP! (ALARM TRIGGERED)';
-        bDesc.innerText = 'Người dùng đã sập sàn với tốc độ lớn và bất động trên sàn quá 8 giây!';
+        const alarmSlots = [...statesBySlot.values()]
+          .filter(track => track.state === 'ALARM_TRIGGERED').map(track => `S${track.slot}`);
+        bTitle.innerText = `🚨 CẢNH BÁO TÉ NGÃ · ${alarmSlots.join(', ')}`;
+        bDesc.innerText = 'Đã phát hiện dấu hiệu ngã và xác nhận mục tiêu ở sát sàn trong 8 giây.';
         cWrap.style.display = 'none';
         playBeep(980, 0.3); // loud emergency siren
       }
 
-      // Push history
-      historyData.push({ z: data.z_est_m, v: data.v_mps, t: data.t_s });
-      if (historyData.length > maxHistoryPoints) historyData.shift();
+      if (primarySlot !== data.slot) {
+        primarySlot = data.slot;
+        currentTrail = [];
+        if (historyData.length > 0 && historyData[historyData.length - 1] !== null) historyData.push(null);
+      }
+      if (hasFrame) {
+        historyData.push(hasTrack ? { z: data.z_est_m, v: data.v_mps } : null);
+        if (historyData.length > maxHistoryPoints) historyData.splice(0, historyData.length - maxHistoryPoints);
+      }
 
-      // Render Canvases
-      renderRadar(data.x_mm, data.y_mm, data.z_est_m, data.state);
+      renderRadar(targets, statesBySlot, data.slot, delayed);
       renderTimeline();
+
+      if (newAlarm && data.state !== 'ALARM_TRIGGERED') playBeep(980, 0.3);
 
       // Alarms History Update
       if (data.alarms && data.alarms.length !== prevAlarmCount) {
@@ -646,7 +720,7 @@ HTML_PAGE = """<!DOCTYPE html>
             <td class="mono" style="color: #ef4444; font-weight: 700;">${a.alarm_time_s}s</td>
             <td class="mono">${a.latency_s}s</td>
             <td class="mono" style="color: #fbbf24;">${a.v_peak_mps} m/s</td>
-            <td class="mono">${a.drop_rate_mps} m/s</td>
+            <td class="mono">${a.drop_rate_mps == null ? '—' : a.drop_rate_mps + ' m/s'}</td>
             <td class="mono">${a.z_floor_m} m</td>
             <td class="mono">Slot ${a.slot}</td>
             <td><span class="badge badge-offline">ALARM TRIGGERED</span></td>
@@ -668,16 +742,22 @@ HTML_PAGE = """<!DOCTYPE html>
 </html>
 """
 
+def put_latest(target_queue, item):
+    """Push without blocking a producer, replacing the oldest item if full."""
+    try:
+        target_queue.put_nowait(item)
+    except queue.Full:
+        try:
+            target_queue.get_nowait()
+        except queue.Empty:
+            pass  # The consumer took it since put_nowait reported full.
+        target_queue.put_nowait(item)
+
+
 def broadcast(payload: dict):
     with subscribers_lock:
-        dead = []
         for q in subscribers:
-            try:
-                q.put_nowait(payload)
-            except queue.Full:
-                dead.append(q)
-        for d in dead:
-            subscribers.remove(d)
+            put_latest(q, payload)
 
 class WebHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -694,15 +774,13 @@ class WebHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
 
-            q = queue.Queue(maxsize=100)
-            with subscribers_lock:
-                subscribers.append(q)
-
-            # Send initial state
+            q = queue.Queue(maxsize=1)
             with detector_lock:
                 init_data = dict(last_frame_info)
                 init_data['tcp_connected'] = tcp_connected
                 init_data['alarms'] = list(alarm_history)
+                with subscribers_lock:
+                    subscribers.append(q)
             try:
                 self.wfile.write(f"data: {json.dumps(init_data)}\n\n".encode('utf-8'))
                 self.wfile.flush()
@@ -714,7 +792,7 @@ class WebHandler(http.server.BaseHTTPRequestHandler):
                     except queue.Empty:
                         self.wfile.write(b": keepalive\n\n")
                         self.wfile.flush()
-            except (BrokenPipeError, ConnectionResetError):
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass
             finally:
                 with subscribers_lock:
@@ -728,7 +806,7 @@ class WebHandler(http.server.BaseHTTPRequestHandler):
         global alarm_history
         if self.path == '/api/reset':
             with detector_lock:
-                global_detector.reset_all()
+                global_detector.reset_stream()
                 alarm_history.clear()
             self.send_response(200)
             self.end_headers()
@@ -751,12 +829,12 @@ def run_simulation():
     """Simulate a realistic fall sequence in background and feed to FSM."""
     print("\n[SIMULATION] Bắt đầu chuỗi giả lập té ngã...")
     with detector_lock:
-        global_detector.reset_all()
+        global_detector.reset_stream()
 
     # Phase 1: Standing upright for 2 seconds (Z = 1.50m)
     t_start = time.time()
-    for t_step in range(0, 20):
-        t_us = int((time.time() - t_start + t_step * 0.1) * 1e6)
+    for _ in range(25):
+        t_us = int((time.time() - t_start) * 1e6)
         active_list = [{'slot': 1, 'x_mm': 200, 'y_mm': 1800, 'v_mps': 0.10}]
         process_frame(t_us, active_list, backlog_ms=10.0, simulated=True)
         time.sleep(0.09)
@@ -780,24 +858,58 @@ def run_simulation():
 
     print("[SIMULATION] Chuỗi giả lập hoàn tất.\n")
 
-def process_frame(t_us: int, active_list: list[dict], backlog_ms: float = 0.0, simulated: bool = False):
-    global last_frame_info
+def process_frame(t_us: int, active_list: list[dict], backlog_ms: float = 0.0,
+                  simulated: bool = False, source=None, *, pc_wait_ms=0.0,
+                  skipped_frame=False):
+    global last_frame_info, last_detector_source
     with detector_lock:
-        summary, alarm = global_detector.update(t_us, active_list, backlog_ms=backlog_ms)
-        if alarm:
+        if simulated:
+            source = "simulation"
+        if source != last_detector_source or skipped_frame:
+            global_detector.reset_stream()
+            for detector in posture_detectors.values():
+                detector.reset()
+            last_detector_source = source
+        summary, alarms = global_detector.update(t_us, active_list, backlog_ms=backlog_ms + pc_wait_ms)
+        valid_slots = set()
+        for track in summary.get('target_states', []):
+            slot = track['slot']
+            valid_slots.add(slot)
+            if posture_mode == 'data4':
+                label = posture_detectors[slot].update(t_us / 1e6, track['z_est_m'])
+            elif posture_mode == 'data3':
+                label = height_posture(track['z_est_m'], posture_config['low_m'], posture_config['high_m'])
+            else:
+                label = old_posture(track['z_est_m'])
+            track['posture_label'] = label
+            track['posture_provisional'] = label == 'BEND'
+            if slot == summary['slot']:
+                summary['posture_label'] = label
+        for slot, detector in posture_detectors.items():
+            if slot not in valid_slots:
+                detector.reset()
+        summary['posture_mode'] = posture_mode
+        if summary['note'] == 'BACKLOG_EXCEEDED' and backlog_ms <= MAX_BACKLOG_MS:
+            summary['note'] = 'PC_ANALYSIS_DELAY'
+        for alarm in alarms:
             alarm_history.append(alarm)
             print("\n" + "="*70)
-            print(f"🚨 [CẢNH BÁO TÉ NGÃ!] ALARM TRIGGERED! (t={alarm['alarm_time_s']}s, Latency={alarm['latency_s']}s)")
+            print(f"🚨 [CẢNH BÁO TÉ NGÃ!] ALARM TRIGGERED! (S{alarm['slot']}, t={alarm['alarm_time_s']}s, Latency={alarm['latency_s']}s)")
             print("="*70 + "\n")
             sys.stdout.write('\a')
             sys.stdout.flush()
 
+        summary['raw_targets'] = active_list
+        summary['model_name'] = ml_model_name
+        summary['runtime_config'] = dict(runtime_config)
+        summary['backlog_ms'] = backlog_ms
+        summary['pc_wait_ms'] = pc_wait_ms
         summary['tcp_connected'] = tcp_connected or simulated
         summary['alarms'] = list(alarm_history)
         last_frame_info = summary
+        broadcast(summary)
 
-    broadcast(summary)
-    publish_mqtt(summary, alarm)
+    publish_mqtt(summary, alarms)
 
 
 # ---------------- MQTT Cloud (xem tren dien thoai tu bat ky dau) ----------------
@@ -805,13 +917,13 @@ mqtt_pub: MqttPublisher | None = None
 _mqtt_last = {'t': 0.0, 'state': None}
 
 
-def publish_mqtt(summary: dict, alarm: dict | None):
+def publish_mqtt(summary: dict, alarms: list[dict]):
     """Throttled publish: <= 4 msg/s for live state, immediate on state change or alarm."""
     if mqtt_pub is None:
         return
     now = time.time()
     changed = summary['state'] != _mqtt_last['state']
-    if changed or alarm or now - _mqtt_last['t'] >= 0.25:
+    if changed or alarms or now - _mqtt_last['t'] >= 0.25:
         _mqtt_last['t'], _mqtt_last['state'] = now, summary['state']
         mqtt_pub.publish('state', {
             't': summary['t_s'], 's': summary['state'], 'z': summary['z_est_m'],
@@ -820,33 +932,51 @@ def publish_mqtt(summary: dict, alarm: dict | None):
             'c': summary['tcp_connected'], 'n': summary['note'],
             'na': len(summary['alarms']),
         })
-    if alarm:
+    for alarm in alarms:
         payload = dict(alarm, wall_time=dt.datetime.now().strftime('%H:%M:%S %d/%m/%Y'))
         mqtt_pub.publish('alarm', payload)
         mqtt_pub.publish('last_alarm', payload, retain=True)
 
 class LiveWebRecorder(receiver.Recorder):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.analysis_queue = queue.Queue(maxsize=4)
+        self.analysis_thread = threading.Thread(target=self.analyze_frames, daemon=True)
+        self.analysis_thread.start()
+
     def record(self, obj: object) -> tuple[str, bool]:
         global tcp_connected
+        received_at = time.monotonic()
         tcp_connected = True
         ack, res = super().record(obj)
-        if not res:
-            return ack, res
-        r = validate_record(obj)
-        if r["type"] == "frame":
-            targets = decode_frame(r["raw_hex"])
-            active_list = []
-            for i, t in enumerate(targets, 1):
-                if t["active"]:
-                    active_list.append({
-                        'slot': i,
-                        'x_mm': t['x_mm'],
-                        'y_mm': t['y_mm'],
-                        'v_mps': t['speed_cms'] / 100.0
-                    })
-            backlog_ms = float(r.get("sent_us", r["t_us"]) - r["t_us"]) / 1000.0
-            process_frame(r["t_us"], active_list, backlog_ms=backlog_ms)
+        if res:
+            # Recorder has already validated, decoded and persisted this frame.
+            put_latest(self.analysis_queue, (self.total, received_at, obj, self.latest_targets))
         return ack, res
+
+    def analyze_frames(self):
+        last_frame_number = 0
+        while True:
+            item = self.analysis_queue.get()
+            if item is None:
+                return
+            frame_number, received_at, record, targets = item
+            active_list = [
+                {'slot': slot, 'x_mm': target['x_mm'], 'y_mm': target['y_mm'],
+                 'v_mps': target['speed_cms'] / 100.0}
+                for slot, target in enumerate(targets, 1) if target['active']
+            ]
+            backlog_ms = (record["sent_us"] - record["t_us"]) / 1000.0
+            process_frame(record["t_us"], active_list, backlog_ms=backlog_ms,
+                          source=(record["device_id"], record["boot_id"]),
+                          pc_wait_ms=(time.monotonic() - received_at) * 1000,
+                          skipped_frame=frame_number != last_frame_number + 1)
+            last_frame_number = frame_number
+
+    def close(self):
+        put_latest(self.analysis_queue, None)
+        self.analysis_thread.join(timeout=2.0)
+        super().close()
 
 def start_http_server(host="0.0.0.0", port=8080):
     class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
@@ -860,15 +990,111 @@ def main():
     parser.add_argument("--web-port", type=int, default=8080, help="Web Dashboard port")
     parser.add_argument("--out", type=Path, default=Path("data_web_session"))
     parser.add_argument("--no-browser", action="store_true", help="Do not automatically open web browser")
-    parser.add_argument("--no-mqtt", action="store_true", help="Tat gui du lieu len MQTT Cloud")
+    parser.add_argument("--model", type=Path, help="Use a trained 2-second SVM or Random Forest model")
+    parser.add_argument("--fsm-config", type=Path,
+                        default=Path(__file__).parent / 'fsm_parameters_1p7m.json')
+    parser.add_argument("--height", type=float, help="Actual PC mounting height in metres (1.00 to 2.50)")
+    parser.add_argument("--esp32-url", help="Read H_mount from ESP32 /api/state, e.g. http://radar.local")
+    parser.add_argument('--posture-mode', choices=('old','data3','data4'), default='old',
+                        help='Old thresholds, data-derived 3 groups, or experimental causal 4 groups')
+    parser.add_argument('--posture-config', type=Path,
+                        default=Path(__file__).parent/'posture_config_1p7m.json')
+    parser.add_argument("--mqtt", action=argparse.BooleanOptionalAction, default=None,
+                        help="Enable/disable MQTT publishing (off by default in model mode)")
     parser.add_argument("--mqtt-host", default="broker.hivemq.com")
     parser.add_argument("--mqtt-port", type=int, default=1883)
     parser.add_argument("--mqtt-topic", default="doan2/hoangduy1812/ld2450",
                         help="Topic goc; trang dien thoai phai dung cung topic nay")
     args = parser.parse_args()
 
-    global mqtt_pub
-    if not args.no_mqtt:
+    global mqtt_pub, global_detector, ml_model_name, posture_mode, posture_config, posture_detectors
+    posture_mode = args.posture_mode
+    if posture_mode != 'old':
+        try:
+            posture_config = json.loads(args.posture_config.read_text(encoding='utf-8'))
+            if set(posture_config) != {'low_m','high_m','bend_drop_m','bend_timeout_s'}:
+                raise ValueError('Invalid posture config keys')
+            if not (0 < posture_config['low_m'] < posture_config['high_m'] < 1.7
+                    and posture_config['bend_drop_m'] > 0 and posture_config['bend_timeout_s'] > 0):
+                raise ValueError('Invalid posture thresholds')
+            posture_detectors = {slot: PostureFSM(**posture_config) for slot in (1,2,3)}
+        except (OSError,ValueError,TypeError) as exc:
+            parser.error(f'Invalid posture config: {exc}')
+    try:
+        settings = load_settings(args.fsm_config)
+    except (OSError, ValueError, TypeError) as exc:
+        parser.error(f'Invalid FSM config: {exc}')
+    if args.height is not None:
+        if not 1.0 <= args.height <= 2.5:
+            parser.error('--height must be between 1.00 and 2.50 m')
+        settings['h_mount_mm'] = args.height * 1000.0
+    runtime_config.update(h_mount_m=settings['h_mount_mm']/1000.0,
+                          height_source='manual' if args.height is not None else 'config',
+                          height_sync_status='waiting' if args.esp32_url else 'manual')
+    global_detector = MultiTargetFallDetector(**settings)
+    if args.model is not None:
+        import joblib
+
+        bundle = joblib.load(args.model)
+        model = bundle["model"]
+        try:
+            feature_set = feature_set_from_bundle(bundle)
+        except (KeyError, TypeError, ValueError) as exc:
+            parser.error(str(exc))
+
+        classifier = bundle.get("classifier", "rf")
+        if classifier == "svm" and callable(getattr(model, "decision_function", None)):
+            ml_model_name = "SVM RBF"
+
+            def score_window(t_us, features):
+                return model.decision_function([features])[0]
+        elif classifier == "rf" and callable(getattr(model, "predict_proba", None)):
+            ml_model_name = "Random Forest"
+
+            def score_window(t_us, features):
+                return model.predict_proba([features])[0, 1]
+        else:
+            parser.error("The saved model must be a supported SVM or Random Forest bundle.")
+
+        ml_model_name += f" ({len(FEATURE_SETS[feature_set])} đặc trưng)"
+        global_detector = MultiTargetFallDetector(
+            **settings, window_score=score_window,
+            ml_threshold=bundle["threshold"], feature_set=feature_set,
+        )
+    last_frame_info.update(global_detector.get_summary(0, note="Chờ kết nối ESP32..."))
+    last_frame_info['model_name'] = ml_model_name
+    last_frame_info['runtime_config'] = dict(runtime_config)
+    session_stamp = dt.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+    config_log_dir = args.out / f'web_{session_stamp}'
+    rec = LiveWebRecorder(config_log_dir, "P01", "WEB_TRIAL", "live_dashboard", "Web Dashboard run", False)
+    def log_configuration():
+        record = {'wall_time': dt.datetime.now().isoformat(), **runtime_config,
+                  'fsm_settings_at_start': settings,
+                  'posture_mode': posture_mode, 'posture_config': posture_config,
+                  'model': str(args.model) if args.model else None}
+        with (config_log_dir/'configuration_changes.ndjson').open('a',encoding='utf-8') as f:
+            f.write(json.dumps(record,ensure_ascii=False)+'\n')
+    log_configuration()
+    def on_height(value):
+        with detector_lock:
+            changed = apply_height(global_detector, value)
+            if changed:
+                for detector in posture_detectors.values():
+                    detector.reset()
+            changed_source = runtime_config['height_source'] != 'esp32'
+            runtime_config.update(h_mount_m=value,height_source='esp32',height_sync_status='ok')
+            if changed or changed_source:
+                log_configuration()
+                if changed:
+                    print(f'[CONFIG] ESP32 H_mount={value:.2f} m; reset all slot windows/FSM.')
+            last_frame_info['runtime_config'] = dict(runtime_config)
+    def on_height_error(message):
+        with detector_lock:
+            runtime_config['height_sync_status'] = 'error'
+            last_frame_info['runtime_config'] = dict(runtime_config)
+    height_sync = HeightSync(args.esp32_url,on_height,on_height_error).start() if args.esp32_url else None
+    use_mqtt = args.mqtt if args.mqtt is not None else args.model is None
+    if use_mqtt:
         mqtt_pub = MqttPublisher(args.mqtt_host, args.mqtt_port, args.mqtt_topic).start()
         print(f"[MQTT] Gui trang thai len {args.mqtt_host} | topic: {args.mqtt_topic}/state, /alarm")
 
@@ -881,6 +1107,11 @@ def main():
     print("[WEB GUI] GIAO DIEN WEB DASHBOARD DA KHOI CHAY THANH CONG!")
     print(f"   * Truy cap Dashboard tai trinh duyet: {web_url}")
     print(f"   * Dang lang nghe ket noi TCP tu ESP32 tai cong: {args.tcp_port}")
+    print(f"   * Mô hình: {ml_model_name + ' 2 giây + FSM' if ml_model_name else 'FSM theo ngưỡng'}")
+    print(f"   * FSM config: {args.fsm_config}; H_mount khởi tạo={runtime_config['h_mount_m']:.2f} m")
+    print(f"   * Posture mode: {posture_mode}; ngưỡng tư thế: {posture_config}")
+    if args.esp32_url:
+        print(f"   * Đồng bộ H_mount từ {args.esp32_url.rstrip('/')}/api/state")
     print("   * Tinh nang noi bat:")
     print("      - Canh bao am thanh thoi gian thuc (Web Audio API)")
     print("      - Ban do quet phong 2D (Top-down Room View)")
@@ -895,14 +1126,13 @@ def main():
             pass
 
     # 2. Start TCP Receiver for ESP32
-    stamp = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
-    rec = LiveWebRecorder(args.out / f"web_{stamp}", "P01", "WEB_TRIAL", "live_dashboard", "Web Dashboard run", False)
-
     try:
         receiver.serve("0.0.0.0", args.tcp_port, rec)
     except KeyboardInterrupt:
         print("\n[DỪNG HỆ THỐNG] Đóng kết nối.")
     finally:
+        if height_sync is not None:
+            height_sync.close()
         rec.close()
 
 if __name__ == "__main__":

@@ -1,0 +1,542 @@
+{
+  "classifier": "rf",
+  "window_s": 2.0,
+  "training_trials": 47,
+  "test_trials": 24,
+  "training_windows_by_label": {
+    "0": 16259,
+    "1": 82
+  },
+  "features": [
+    "peak_radial_speed_mps",
+    "max_radial_accel_mps2",
+    "delta_x_m",
+    "delta_y_m",
+    "radial_velocity_variance",
+    "quiet_time_s"
+  ],
+  "feature_set": "6",
+  "feature_definition": "report6_signed_raw_v1",
+  "python_version": "3.12.14",
+  "sklearn_version": "1.8.0",
+  "threshold": 0.35,
+  "dev_cv_at_threshold": {
+    "events": 20,
+    "detected": 16,
+    "false_or_extra_alarms": 1,
+    "false_alarms_nonfall_trials": 1,
+    "nonfall_trials": 41,
+    "f1_events": 0.8648648648648649,
+    "mean_alarm_latency_s": 7.986,
+    "median_suspect_latency_s": 0.0
+  },
+  "test_online_rule_fsm": {
+    "events": 10,
+    "detected": 8,
+    "false_or_extra_alarms": 0,
+    "false_alarms_nonfall_trials": 0,
+    "nonfall_trials": 21,
+    "f1_events": 0.8888888888888888,
+    "mean_alarm_latency_s": 7.93,
+    "median_suspect_latency_s": -0.089
+  },
+  "test_ml_2s_plus_fsm": {
+    "events": 10,
+    "detected": 7,
+    "false_or_extra_alarms": 1,
+    "false_alarms_nonfall_trials": 1,
+    "nonfall_trials": 21,
+    "f1_events": 0.7777777777777778,
+    "mean_alarm_latency_s": 7.919,
+    "median_suspect_latency_s": -0.089
+  },
+  "test_details": {
+    "rule_fsm": [
+      {
+        "trial": "A_cui_nhat_do_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_di_lai_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_dung_ngoi_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_dung_ngoi_nhanh_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_dung_yen_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_nam_chu_dong_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_nga_mo_phong_03",
+        "events": 4,
+        "detected": 3,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [
+          7.831,
+          7.919,
+          8.097
+        ],
+        "suspect_latency_s": [
+          -0.178,
+          -0.089,
+          0.089
+        ],
+        "missed_status": [
+          "auto_candidate_verified_cycle"
+        ]
+      },
+      {
+        "trial": "A_ngoi_xom_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_cui_nhat_do_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_di_lai_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_dung_ngoi_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_dung_ngoi_nhanh_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_dung_yen_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_nam_chu_dong_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_nga_mo_phong_03",
+        "events": 3,
+        "detected": 2,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [
+          8.008,
+          7.919
+        ],
+        "suspect_latency_s": [
+          0.0,
+          -0.089
+        ],
+        "missed_status": [
+          "needs_review_started_low_after_gap"
+        ]
+      },
+      {
+        "trial": "B_ngoi_xom_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_cui_nhat_do_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_di_chuyen_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_dung_ngoi_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_dung_ngoi_nhanh_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_dung_yen_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_nam_chu_dong_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_nga_mo_phong_03",
+        "events": 3,
+        "detected": 3,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [
+          7.742,
+          7.919,
+          8.008
+        ],
+        "suspect_latency_s": [
+          -0.267,
+          -0.089,
+          0.0
+        ],
+        "missed_status": []
+      },
+      {
+        "trial": "C_ngoi_xom_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      }
+    ],
+    "ml_2s_fsm": [
+      {
+        "trial": "A_cui_nhat_do_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_di_lai_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_dung_ngoi_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_dung_ngoi_nhanh_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_dung_yen_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_nam_chu_dong_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "A_nga_mo_phong_03",
+        "events": 4,
+        "detected": 2,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [
+          7.831,
+          8.097
+        ],
+        "suspect_latency_s": [
+          -0.178,
+          0.089
+        ],
+        "missed_status": [
+          "auto_candidate_verified_cycle",
+          "auto_candidate_verified_cycle"
+        ]
+      },
+      {
+        "trial": "A_ngoi_xom_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_cui_nhat_do_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_di_lai_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_dung_ngoi_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_dung_ngoi_nhanh_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_dung_yen_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_nam_chu_dong_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "B_nga_mo_phong_03",
+        "events": 3,
+        "detected": 2,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [
+          7.919,
+          7.83
+        ],
+        "suspect_latency_s": [
+          -0.089,
+          -0.178
+        ],
+        "missed_status": [
+          "needs_review_started_low_after_gap"
+        ]
+      },
+      {
+        "trial": "B_ngoi_xom_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_cui_nhat_do_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_di_chuyen_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_dung_ngoi_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_dung_ngoi_nhanh_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_dung_yen_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_nam_chu_dong_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 1,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      },
+      {
+        "trial": "C_nga_mo_phong_03",
+        "events": 3,
+        "detected": 3,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [
+          7.652,
+          8.097,
+          8.008
+        ],
+        "suspect_latency_s": [
+          -0.356,
+          0.089,
+          0.0
+        ],
+        "missed_status": []
+      },
+      {
+        "trial": "C_ngoi_xom_03",
+        "events": 0,
+        "detected": 0,
+        "false_or_extra_alarms": 0,
+        "alarm_latency_s": [],
+        "suspect_latency_s": [],
+        "missed_status": []
+      }
+    ]
+  }
+}
